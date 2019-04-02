@@ -30,17 +30,25 @@ local ShowMeBuff = {
 		-- TODO check which one of these consolidates
 		"Honorless Target",
 		"Arena Preparation",
-		"Mark of the wild",
-		"Gift of the wild"
+		"Energized", -- solace
+		"Strength of the Halaani",
+		-- Priest
+		"Divine Aegis",
+		"Renewed Hope", -- 63944
+		"Inspiration",
+		"Focused Will",
+		-- Mage
+		"Replenishment"
 	},
 	hideMounts = true,
 	hideConsolidated = true,
-	hideDuration = 1200, -- 20min
-	numBuffs = 5
+	hideDuration = 600, -- 10min
+	numBuffs = 12
 }
 
 local mountIds = {
 	17229, -- Winterspring Frostsaber
+	60114, -- Armored Brown Bear
 }
 
 -- DEBUFFS
@@ -67,7 +75,7 @@ for i=1,4 do
 		else
 			c = CreateFrame("Frame",n,f,"PartyDebuffFrameTemplate")
 			c:ClearAllPoints()
-			c:SetPoint("BOTTOMLEFT", _G[l..(j-1)],"BOTTOMRIGHT", 2, 0)
+			c:SetPoint("BOTTOMLEFT", _G[l..(j-1)],"BOTTOMRIGHT", 3, 0)
 			c:Show()
 			c:EnableMouse(false)
 		end
@@ -80,7 +88,7 @@ for i=1,4 do
 	end
 	local b = _G[f:GetName().."Debuff1"]
 	b:ClearAllPoints()
-	b:SetPoint("TOPLEFT",48,-64)
+	b:SetPoint("TOPLEFT",48,-32)
 	RefreshDebuffs(f, f.unit, 20, nil,true)
 end
 
@@ -176,8 +184,11 @@ for i=1,4 do
 		local l = f:GetName().."Buff"
 		local n = l..j
 		local c = CreateFrame("Frame",n,f,"TargetBuffFrameTemplate")
+		c:SetSize(15,15)
 		if j == 1 then
-			c:SetPoint("TOPLEFT",48,-32)
+			c:SetPoint("TOPLEFT",47,-50)
+		elseif j == 7 then
+			c:SetPoint("TOPLEFT",_G[l..(j-6)],"BOTTOMLEFT", 0, -1)
 		else
 			c:SetPoint("LEFT",_G[l..(j-1)],"RIGHT",1,0)
 		end
