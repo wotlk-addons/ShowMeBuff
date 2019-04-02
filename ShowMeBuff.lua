@@ -82,6 +82,7 @@ for i=1,4 do
 		-- V: we need to specifically create a cooldown frame inside of "c"
 		--    because PartyDebuffFrameTemplate has none
 		local cd = CreateFrame("Cooldown",n.."Cooldown",c,"CooldownFrameTemplate")
+		cd:SetReverse(true)
 		--cd:SetDrawEdge(true)
 		cd:SetSize(20, 20) -- V: size needs to be AT LEAST 20
 		cd:SetPoint("CENTER", 0, -1)
