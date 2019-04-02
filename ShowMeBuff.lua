@@ -25,13 +25,16 @@ end
 -- TODO real config
 local ShowMeBuff = {
 	hideInfinite = false,
+	-- TODO hideSpellIds
 	hideBuffNames = {
+		-- TODO check which one of these consolidates
 		"Honorless Target",
 		"Arena Preparation",
 		"Mark of the wild",
 		"Gift of the wild"
 	},
 	hideMounts = true,
+	hideConsolidated = true,
 	hideDuration = 1200, -- 20min
 	numBuffs = 5
 }
@@ -82,8 +85,13 @@ for i=1,4 do
 end
 
 -- BUFFS
-local function ShowThisBuff(name, spellId, duration, expirationTime)
+local function ShowThisBuff(name, spellId, duration, expirationTime, shouldConsolidate)
 	--print(name, debuffType, duration, expirationTime, "--")
+	if ShowMeBuff.hideConsolidated and shouldConsolidate then
+		-- consolidated buff
+		-- print(name, "consolidated")
+		return
+	end
 	if ShowMeBuff.hideInfinite and expirationTime == 0 then
 		-- infinite debuff
 		--print(name, "infinite")
@@ -101,7 +109,7 @@ local function ShowThisBuff(name, spellId, duration, expirationTime)
 	end
 	if ShowMeBuff.hideMounts and array_contains(mountIds, spellId) then
 		-- mount buff
-		--print(name, duration, "is mount")
+		--print(name, duration, "mount")
 		return
 	end
 	--print(name, duration, "ok")
@@ -116,16 +124,16 @@ local function ShowMeBuff_RefreshBuffs(frame, unit, suffix, checkCVar)
 	numBuffs = ShowMeBuff.numBuffs or MAX_PARTY_BUFFS;
 	suffix = suffix or "Buff";
 
-	local name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, nameplateShowPersonal, spellId;
+	local name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId;
 	local buffI = 1
 	for i=1, numBuffs do
 		local filter;
 		if ( checkCVar and GetCVarBool("showCastableBuffs") ) then
 			filter = "RAID";
 		end
-		name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, nameplateShowPersonal, spellId = UnitBuff(unit, i, filter);
+		name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId = UnitBuff(unit, i, filter);
 
-		if name and ShowThisBuff(name, spellId, duration, expirationTime) then
+		if name and ShowThisBuff(name, spellId, duration, expirationTime, shouldConsolidate) then
 			local buffName = frameName..suffix..buffI;
 			if ( icon ) then
 				-- if we have an icon to show then proceed with setting up the aura
