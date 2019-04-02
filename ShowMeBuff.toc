@@ -1,0 +1,6 @@
+## Title: ShowMeBuff
+## Author: Lawz
+## Interface: 30300
+
+ShowMeBuff.xml
+ShowMeBuff.lua
