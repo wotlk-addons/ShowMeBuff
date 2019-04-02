@@ -27,18 +27,46 @@ local ShowMeBuff = {
 	hideInfinite = false,
 	-- TODO hideSpellIds
 	hideBuffNames = {
-		-- TODO check which one of these consolidates
 		"Honorless Target",
 		"Arena Preparation",
-		"Energized", -- solace
 		"Strength of the Halaani",
+		"Essence of Wintergrasp",
+		-- procs - keep powerful ones
+		"Energized", -- solace
+		"Frostforged Sage" -- icc ring
+		"Lightweave" -- tailor back
 		-- Priest
 		"Divine Aegis",
 		"Renewed Hope", -- 63944
 		"Inspiration",
 		"Focused Will",
+		"Borrowed Time",
 		-- Mage
-		"Replenishment"
+		"Replenishment",
+		-- Lock
+		"Shadow Ward",
+		"Demonic Circle: Summon",
+		"Fel Intelligence",
+		"Soul Link", -- keep it ?
+		--"Backdraft", -- same ?
+		--"Backlash",
+		"Nether Protection",
+		"Shadowburn",
+		"Eradication",
+		--"Shadow Trance",
+		-- Druid
+		"Soothing", -- rdruid idol
+		"Clearcasting",
+		"Master Shapeshifter",
+		"Natural Perfection",
+		-- Hunt
+		"Aspect of the Dragonhawk",
+		"Trueshot Aura",
+		"Culling the Herd",
+		-- War
+		"Deep Wounds",
+		"Trauma",
+		"Blood Frenzy",
 	},
 	hideMounts = true,
 	hideConsolidated = true,
