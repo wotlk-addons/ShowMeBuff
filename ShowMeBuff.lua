@@ -24,7 +24,6 @@ end
 
 -- TODO real config
 local ShowMeBuff = {
-	hideInfinite = false,
 	-- TODO hideSpellIds
 	hideBuffNames = {
 		"Honorless Target",
@@ -33,8 +32,8 @@ local ShowMeBuff = {
 		"Essence of Wintergrasp",
 		-- procs - keep powerful ones
 		"Energized", -- solace
-		"Frostforged Sage" -- icc ring
-		"Lightweave" -- tailor back
+		"Frostforged Sage"; -- icc ring
+		"Lightweave", -- tailor back
 		-- Priest
 		"Divine Aegis",
 		"Renewed Hope", -- 63944
@@ -68,16 +67,34 @@ local ShowMeBuff = {
 		"Trauma",
 		"Blood Frenzy",
 	},
+	hideInfinite = false,
 	hideMounts = true,
 	hideConsolidated = true,
 	hideDuration = 600, -- 10min
-	numBuffs = 12
+	numBuffs = 14,
+	buffsPerLine = 4,
+	buffOverDebuffs = true,
 }
 
 local mountIds = {
 	17229, -- Winterspring Frostsaber
 	60114, -- Armored Brown Bear
+	72286, -- Invincible
 }
+
+local BUFF_POINT, DEBUFF_POINT
+if ShowMeBuff.buffOverDebuffs then
+	BUFF_POINT = -32
+	DEBUFF_POINT = -64
+else
+	BUFF_POINT = -50
+	DEBUFF_POINT = -32
+end
+
+-- error checking
+if ShowMeBuff.buffsPerLine > ShowMeBuff.numBuffs then
+	ShowMeBuff.buffsPerLine = ShowMeBuff.numBuffs
+end
 
 -- DEBUFFS
 for i=1,4 do
@@ -117,7 +134,7 @@ for i=1,4 do
 	end
 	local b = _G[f:GetName().."Debuff1"]
 	b:ClearAllPoints()
-	b:SetPoint("TOPLEFT",48,-32)
+	b:SetPoint("TOPLEFT",48,DEBUFF_POINT)
 	RefreshDebuffs(f, f.unit, 20, nil,true)
 end
 
@@ -126,27 +143,27 @@ local function ShowThisBuff(name, spellId, duration, expirationTime, shouldConso
 	--print(name, debuffType, duration, expirationTime, "--")
 	if ShowMeBuff.hideConsolidated and shouldConsolidate then
 		-- consolidated buff
-		-- print(name, "consolidated")
+		-- print(name..": consolidated")
 		return
 	end
 	if ShowMeBuff.hideInfinite and expirationTime == 0 then
 		-- infinite debuff
-		--print(name, "infinite")
+		--print(name..": infinite")
 		return
 	end
 	if array_contains(ShowMeBuff.hideBuffNames, name) then
 		-- buff explicitly ignored
-		--print(name, "ignored")
+		--print(name..": ignored")
 		return
 	end
 	if duration >= ShowMeBuff.hideDuration then
 		-- buff too long
-		--print(name, duration, "too long")
+		--print(name, duration..": too long")
 		return
 	end
 	if ShowMeBuff.hideMounts and array_contains(mountIds, spellId) then
 		-- mount buff
-		--print(name, duration, "mount")
+		--print(name, duration..": mount")
 		return
 	end
 	--print(name, duration, "ok")
@@ -163,14 +180,19 @@ local function ShowMeBuff_RefreshBuffs(frame, unit, suffix, checkCVar)
 
 	local name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId;
 	local buffI = 1
-	for i=1, numBuffs do
+	for i=1, 40 do
 		local filter;
 		if ( checkCVar and GetCVarBool("showCastableBuffs") ) then
 			filter = "RAID";
 		end
 		name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId = UnitBuff(unit, i, filter);
 
-		if name and ShowThisBuff(name, spellId, duration, expirationTime, shouldConsolidate) then
+		-- we ran out of buffs OR we have enough displayed
+		if not name or buffI > numBuffs then
+			break
+		end
+
+		if ShowThisBuff(name, spellId, duration, expirationTime, shouldConsolidate) then
 			local buffName = frameName..suffix..buffI;
 			if ( icon ) then
 				-- if we have an icon to show then proceed with setting up the aura
@@ -215,9 +237,9 @@ for i=1,4 do
 		local c = CreateFrame("Frame",n,f,"TargetBuffFrameTemplate")
 		c:SetSize(15,15)
 		if j == 1 then
-			c:SetPoint("TOPLEFT",47,-50)
-		elseif j == 7 then
-			c:SetPoint("TOPLEFT",_G[l..(j-6)],"BOTTOMLEFT", 0, -1)
+			c:SetPoint("TOPLEFT",47,BUFF_POINT)
+		elseif ((j - 1) % ShowMeBuff.buffsPerLine) == 0 then
+			c:SetPoint("TOPLEFT",_G[l..(j - ShowMeBuff.buffsPerLine)],"BOTTOMLEFT", 0, -1)
 		else
 			c:SetPoint("LEFT",_G[l..(j-1)],"RIGHT",1,0)
 		end
