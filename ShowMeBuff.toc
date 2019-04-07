@@ -1,6 +1,7 @@
 ## Title: ShowMeBuff
-## Author: Lawz
+## Author: Lawz & Vendethiel
 ## Interface: 30300
+## SavedVariables: ShowMeBuffDB
 
 ShowMeBuff.xml
 ShowMeBuff.lua

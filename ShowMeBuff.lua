@@ -23,77 +23,75 @@ local function array_contains(tab, val)
 end
 
 -- TODO real config
-local ShowMeBuff = {
-	-- TODO hideSpellIds
-	hideBuffNames = {
-		"Honorless Target",
-		"Arena Preparation",
-		"Strength of the Halaani",
-		"Essence of Wintergrasp",
-		-- procs - keep powerful ones
-		"Energized", -- solace
-		"Frostforged Sage"; -- icc ring
-		"Lightweave", -- tailor back
-		-- Priest
-		"Divine Aegis",
-		"Renewed Hope", -- 63944
-		"Inspiration",
-		"Focused Will",
-		"Borrowed Time",
-		-- Mage
-		"Replenishment",
-		-- Lock
-		"Shadow Ward",
-		"Demonic Circle: Summon",
-		"Fel Intelligence",
-		"Soul Link", -- keep it ?
-		--"Backdraft", -- same ?
-		--"Backlash",
-		"Nether Protection",
-		"Shadowburn",
-		"Eradication",
-		--"Shadow Trance",
-		-- Druid
-		"Soothing", -- rdruid idol
-		"Clearcasting",
-		"Master Shapeshifter",
-		"Natural Perfection",
-		-- Hunt
-		"Aspect of the Dragonhawk",
-		"Trueshot Aura",
-		"Culling the Herd",
-		-- War
-		"Deep Wounds",
-		"Trauma",
-		"Blood Frenzy",
-	},
-	hideInfinite = false,
-	hideMounts = true,
-	hideConsolidated = true,
-	hideDuration = 600, -- 10min
-	numBuffs = 14,
-	buffsPerLine = 4,
+ShowMeBuffDB = {
 	buffOverDebuffs = true,
+	buffs = {
+		hideNames = {
+			"Honorless Target",
+			"Arena Preparation",
+			"Strength of the Halaani",
+			"Essence of Wintergrasp",
+			-- procs - keep powerful ones
+			"Energized", -- solace
+			"Frostforged Sage"; -- icc ring
+			"Lightweave", -- tailor back
+			-- Priest
+			"Divine Aegis",
+			"Renewed Hope", -- 63944
+			"Inspiration",
+			"Focused Will",
+			"Borrowed Time",
+			-- Mage
+			"Replenishment",
+			-- Lock
+			"Shadow Ward",
+			"Demonic Circle: Summon",
+			"Fel Intelligence",
+			"Soul Link", -- keep it ?
+			--"Backdraft", -- same ?
+			--"Backlash",
+			"Nether Protection",
+			"Shadowburn",
+			"Eradication",
+			--"Shadow Trance",
+			-- Druid
+			"Soothing", -- rdruid idol
+			"Clearcasting",
+			"Master Shapeshifter",
+			"Natural Perfection",
+			-- Hunt
+			"Aspect of the Dragonhawk",
+			"Trueshot Aura",
+			"Culling the Herd",
+			-- War
+			"Trauma",
+			"Blood Frenzy",
+		},
+		hideInfinite = false,
+		hideMounts = true,
+		hideConsolidated = true,
+		hideDuration = 600, -- 10min
+
+		onlyCastable = false,
+		displayNum = 14,
+		buffsPerLine = 4,
+	},
 }
 
 local mountIds = {
 	17229, -- Winterspring Frostsaber
 	60114, -- Armored Brown Bear
 	72286, -- Invincible
+	46628, -- Swift White Hawkstrider
 }
 
 local BUFF_POINT, DEBUFF_POINT
-if ShowMeBuff.buffOverDebuffs then
+if ShowMeBuffDB.buffOverDebuffs then
 	BUFF_POINT = -32
 	DEBUFF_POINT = -64
 else
 	BUFF_POINT = -50
 	DEBUFF_POINT = -32
-end
-
--- error checking
-if ShowMeBuff.buffsPerLine > ShowMeBuff.numBuffs then
-	ShowMeBuff.buffsPerLine = ShowMeBuff.numBuffs
 end
 
 -- DEBUFFS
@@ -139,29 +137,29 @@ for i=1,4 do
 end
 
 -- BUFFS
-local function ShowThisBuff(name, spellId, duration, expirationTime, shouldConsolidate)
+local function ShowThisBuff(rules, name, spellId, duration, expirationTime, shouldConsolidate)
 	--print(name, debuffType, duration, expirationTime, "--")
-	if ShowMeBuff.hideConsolidated and shouldConsolidate then
+	if rules.hideConsolidated and shouldConsolidate then
 		-- consolidated buff
 		-- print(name..": consolidated")
 		return
 	end
-	if ShowMeBuff.hideInfinite and expirationTime == 0 then
+	if rules.hideInfinite and expirationTime == 0 then
 		-- infinite debuff
 		--print(name..": infinite")
 		return
 	end
-	if array_contains(ShowMeBuff.hideBuffNames, name) then
+	if array_contains(rules.hideNames, name) then
 		-- buff explicitly ignored
 		--print(name..": ignored")
 		return
 	end
-	if duration >= ShowMeBuff.hideDuration then
+	if duration >= rules.hideDuration then
 		-- buff too long
 		--print(name, duration..": too long")
 		return
 	end
-	if ShowMeBuff.hideMounts and array_contains(mountIds, spellId) then
+	if rules.hideMounts and array_contains(mountIds, spellId) then
 		-- mount buff
 		--print(name, duration..": mount")
 		return
@@ -171,29 +169,23 @@ local function ShowThisBuff(name, spellId, duration, expirationTime, shouldConso
 end
 
 -- V: Copy-pasted then modified
-local allBuffs = {}
-local function ShowMeBuff_RefreshBuffs(frame, unit, suffix, checkCVar)
-	local frameName = frame:GetName();
-
-	numBuffs = ShowMeBuff.numBuffs or MAX_PARTY_BUFFS;
-	suffix = suffix or "Buff";
+local function ShowMeBuff_RefreshBuffs(frame, unit, rules)
+	local numBuffs = rules.displayNum or MAX_PARTY_BUFFS;
+	local framePrefix = frame:GetName().."Buff";
 
 	local name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId;
 	local buffI = 1
+	local filter = rules.onlyCastable and "RAID";
 	for i=1, 40 do
-		local filter;
-		if ( checkCVar and GetCVarBool("showCastableBuffs") ) then
-			filter = "RAID";
-		end
 		name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId = UnitBuff(unit, i, filter);
 
 		-- we ran out of buffs OR we have enough displayed
 		if not name or buffI > numBuffs then
-			break
+			break -- could even return
 		end
 
-		if ShowThisBuff(name, spellId, duration, expirationTime, shouldConsolidate) then
-			local buffName = frameName..suffix..buffI;
+		if ShowThisBuff(rules, name, spellId, duration, expirationTime, shouldConsolidate) then
+			local buffName = framePrefix..buffI;
 			if ( icon ) then
 				-- if we have an icon to show then proceed with setting up the aura
 
@@ -216,11 +208,16 @@ local function ShowMeBuff_RefreshBuffs(frame, unit, suffix, checkCVar)
 			buffI = buffI + 1
 		end
 	end
-	for i=buffI, #allBuffs do
-		allBuffs[i]:Hide()
+
+	-- hide all remaining buff frames
+	-- "buffI" here is already 1 past the last displayed buff
+	for i=buffI, numBuffs do
+		local buffName = framePrefix..i;
+		_G[buffName]:Hide()
 	end
 end
 
+local buffRules = ShowMeBuffDB.buffs
 for i=1,4 do
 	local f = _G["PartyMemberFrame"..i] -- PartyMemberFrame1
 	f:UnregisterEvent("UNIT_AURA")
@@ -228,23 +225,22 @@ for i=1,4 do
 	g:RegisterEvent("UNIT_AURA")
 	g:SetScript("OnEvent",function(self,event,a1)
 		if a1 == f.unit then
-			ShowMeBuff_RefreshBuffs(f,a1,nil,true)
+			ShowMeBuff_RefreshBuffs(f, f.unit, buffRules)
 		end
 	end)
-	for j=1,ShowMeBuff.numBuffs do
+	for j=1,buffRules.displayNum do
 		local l = f:GetName().."Buff"
 		local n = l..j
 		local c = CreateFrame("Frame",n,f,"TargetBuffFrameTemplate")
 		c:SetSize(15,15)
 		if j == 1 then
 			c:SetPoint("TOPLEFT",47,BUFF_POINT)
-		elseif ((j - 1) % ShowMeBuff.buffsPerLine) == 0 then
-			c:SetPoint("TOPLEFT",_G[l..(j - ShowMeBuff.buffsPerLine)],"BOTTOMLEFT", 0, -1)
+		elseif ((j - 1) % buffRules.buffsPerLine) == 0 then
+			c:SetPoint("TOPLEFT",_G[l..(j - buffRules.buffsPerLine)],"BOTTOMLEFT", 0, -1)
 		else
 			c:SetPoint("LEFT",_G[l..(j-1)],"RIGHT",1,0)
 		end
 		c:EnableMouse(false)
-		tinsert(allBuffs, c)
 	end
-	ShowMeBuff_RefreshBuffs(f,f.unit,nil,true)
+	ShowMeBuff_RefreshBuffs(f, f.unit, buffRules)
 end
