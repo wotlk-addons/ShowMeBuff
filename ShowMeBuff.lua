@@ -184,7 +184,8 @@ if ShowMeBuff.movePetFrame then
 end
 
 if ShowMeBuff.buffOverDebuffs then
-	ShowMeBuff.buffs.buffLine, ShowMeBuff.buffs.debuffLine = ShowMeBuff.buffs.debuffLine, ShowMeBuff.buffs.buffLine
+	local b, d = ShowMeBuff.buffs.buffLine, ShowMeBuff.buffs.debuffLine	
+	b, d = d, b
 end
 
 -- error checking
