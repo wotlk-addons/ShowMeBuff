@@ -28,45 +28,47 @@ smbDefaults = {
 	buffOverDebuffs = true,
 	buffs = {
 		hideNames = {
-			"Honorless Target",
-			"Arena Preparation",
-			"Strength of the Halaani",
-			"Essence of Wintergrasp",
+			"46705", --"Honorless Target",
+			"32727", --"Arena Preparation",
+			"33795", --"Strength of the Halaani",
+			"57940", --"Essence of Wintergrasp",
 			-- procs - keep powerful ones
-			"Energized", -- solace
-			"Frostforged Sage", -- icc ring
-			"Lightweave", -- tailor back
+			"67750", -- "Energized", -- solace
+			"72416", -- Frostforged Sage,  ICC caster ring
+			"50402", -- Frostforged Champion, ICC melee ring
+			"55637", --"Lightweave", -- tailor back
+			"59626", -- Black Magic
 			-- Priest
-			"Divine Aegis",
-			"Renewed Hope", -- 63944
-			"Inspiration",
-			"Focused Will",
-			"Borrowed Time",
+			"47515", -- "Divine Aegis",
+			" 63944", -- "Renewed Hope",
+			"15363", -- "Inspiration",
+			"45244", -- "Focused Will",
+			"52800", -- "Borrowed Time",
 			-- Mage
-			"Replenishment",
+			"57669", --"Replenishment",
 			-- Lock
-			"Shadow Ward",
-			"Demonic Circle: Summon",
-			"Fel Intelligence",
-			"Soul Link", -- keep it ?
-			--"Backdraft", -- same ?
-			--"Backlash",
-			"Nether Protection",
-			"Shadowburn",
-			"Eradication",
-			--"Shadow Trance",
+			"47891", --"Shadow Ward",
+			"48018", --"Demonic Circle: Summon",
+			"57567", --"Fel Intelligence",
+			-- "Soul Link", -- keep it ?
+			"47260", --"Backdraft", -- same ?
+			-- "Backlash",
+			-- "Nether Protection",
+			"29341", --"Shadowburn",
+			"47197", --"Eradication",
+			-- "Shadow Trance",
 			-- Druid
-			"Soothing", -- rdruid idol
-			"Clearcasting",
-			"Master Shapeshifter",
-			"Natural Perfection",
+			"71184", --"Soothing", -- rdruid idol
+			"16246", --"Clearcasting",
+			"48412", --"Master Shapeshifter",
+			"33883", --"Natural Perfection",
 			-- Hunt
-			"Aspect of the Dragonhawk",
-			"Trueshot Aura",
-			"Culling the Herd",
+			"61847", --"Aspect of the Dragonhawk",
+			"19506", --"Trueshot Aura",
+			"52858", --"Culling the Herd",
 			-- War
-			"Trauma",
-			"Blood Frenzy",
+			"46857", --"Trauma",
+			"30070", --"Blood Frenzy",
 		},
 		hideInfinite = false,
 		hideMounts = true,
@@ -82,9 +84,8 @@ smbDefaults = {
 	},
 	debuffs = {
 		hideNames = {
-			"Deserter",
-			"Res debuff",
-			"whatever"
+			"26013", -- "Deserter",
+			-- "whatever"
 		},
 		hideFiltered = true,
 
@@ -97,6 +98,20 @@ smbDefaults = {
 }
 
 ShowMeBuffDB = ShowMeBuffDB or smbDefaults
+
+local hideBList, hideDList = ShowMeBuffDB.buffs.hideNames, ShowMeBuffDB.debuffs.hideNames
+for k, v in pairs(hideBList) do
+	local name = GetSpellInfo(v)
+	if name then
+		hideBList[k] = name
+	end
+end
+for k, v in pairs(hideDList) do
+	local name = GetSpellInfo(v)
+	if name then
+		hideDList[k] = name
+	end
+end
 
 local mountIds = {
 	17229, -- Winterspring Frostsaber
