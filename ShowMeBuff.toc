@@ -3,6 +3,7 @@
 ## Interface: 30300
 ## SavedVariables: ShowMeBuffDB
 
+libs\LibSimpleOptions-1.0\LibStub\LibStub.lua
 libs\LibSimpleOptions-1.0\lib.xml
 
 ShowMeBuff.xml
