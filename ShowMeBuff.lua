@@ -22,8 +22,9 @@ local function array_contains(tab, val)
     return false
 end
 
--- TODO real config
-ShowMeBuffDB = {
+local name, o = ...
+
+smbDefaults = {
 	buffOverDebuffs = true,
 	buffs = {
 		hideNames = {
@@ -33,7 +34,7 @@ ShowMeBuffDB = {
 			"Essence of Wintergrasp",
 			-- procs - keep powerful ones
 			"Energized", -- solace
-			"Frostforged Sage"; -- icc ring
+			"Frostforged Sage", -- icc ring
 			"Lightweave", -- tailor back
 			-- Priest
 			"Divine Aegis",
@@ -71,18 +72,41 @@ ShowMeBuffDB = {
 		hideMounts = true,
 		hideConsolidated = true,
 		hideDuration = 600, -- 10min
-
+		hideFiltered = true,
+		hideNonPlayer = false,
 		onlyCastable = false,
-		displayNum = 14,
-		buffsPerLine = 4,
+
+		numLines = 18,
+		numPerLine = 6,
+		buffSize = 15,
 	},
+	debuffs = {
+		hideNames = {
+			"Deserter",
+			"Res debuff",
+			"whatever"
+		},
+		hideFiltered = true,
+
+		numLines = 18,
+		numPerLine = 6,
+		buffSize = 15,
+	},
+	debug = false,
+	verson = 1,
 }
+
+ShowMeBuffDB = ShowMeBuffDB or smbDefaults
 
 local mountIds = {
 	17229, -- Winterspring Frostsaber
 	60114, -- Armored Brown Bear
+	60116, -- Armored Brown Bear
 	72286, -- Invincible
 	46628, -- Swift White Hawkstrider
+	23338, -- Swift Stormsaber
+	23219, -- Swift Mistsaber
+	71342, -- Big Love Rocket
 }
 
 local BUFF_POINT, DEBUFF_POINT
@@ -94,50 +118,8 @@ else
 	DEBUFF_POINT = -32
 end
 
--- DEBUFFS
-for i=1,4 do
-	local f = _G["PartyMemberFrame"..i]
-	f:UnregisterEvent("UNIT_AURA")
-	local g = CreateFrame("Frame")
-	g:RegisterEvent("UNIT_AURA")
-	g:SetScript("OnEvent",function(self,event,a1)
-		if a1 == f.unit then
-			RefreshDebuffs(f,a1,20,nil,true)
-		else
-			if a1 == f.unit.."pet" then
-				PartyMemberFrame_RefreshPetDebuffs(f)
-			end
-		end
-	end)
-	for j=1,20 do
-		local l = f:GetName().."Debuff"
-		local n = l..j
-		local c
-		if _G[n] then -- first 5 (should) already exist
-			c = _G[n]
-		else
-			c = CreateFrame("Frame",n,f,"PartyDebuffFrameTemplate")
-			c:ClearAllPoints()
-			c:SetPoint("BOTTOMLEFT", _G[l..(j-1)],"BOTTOMRIGHT", 3, 0)
-			c:Show()
-			c:EnableMouse(false)
-		end
-		-- V: we need to specifically create a cooldown frame inside of "c"
-		--    because PartyDebuffFrameTemplate has none
-		local cd = CreateFrame("Cooldown",n.."Cooldown",c,"CooldownFrameTemplate")
-		cd:SetReverse(true)
-		--cd:SetDrawEdge(true)
-		cd:SetSize(20, 20) -- V: size needs to be AT LEAST 20
-		cd:SetPoint("CENTER", 0, -1)
-	end
-	local b = _G[f:GetName().."Debuff1"]
-	b:ClearAllPoints()
-	b:SetPoint("TOPLEFT",48,DEBUFF_POINT)
-	RefreshDebuffs(f, f.unit, 20, nil,true)
-end
-
 -- BUFFS
-local function ShowThisBuff(rules, name, spellId, duration, expirationTime, shouldConsolidate)
+local function ShowThisBuff(rules, name, spellId, duration, expirationTime, unitCaster, shouldConsolidate)
 	--print(name, debuffType, duration, expirationTime, "--")
 	if rules.hideConsolidated and shouldConsolidate then
 		-- consolidated buff
@@ -149,12 +131,16 @@ local function ShowThisBuff(rules, name, spellId, duration, expirationTime, shou
 		--print(name..": infinite")
 		return
 	end
-	if array_contains(rules.hideNames, name) then
+	if rules.hideFiltered and array_contains(rules.hideNames, name) then
 		-- buff explicitly ignored
 		--print(name..": ignored")
 		return
 	end
-	if duration >= rules.hideDuration then
+	if rules.hideNonPlayer and unitCaster ~= "player" then
+		-- buff not casted by a player
+		return
+	end
+	if rules.hideDuration and duration >= rules.hideDuration then
 		-- buff too long
 		--print(name, duration..": too long")
 		return
@@ -169,41 +155,42 @@ local function ShowThisBuff(rules, name, spellId, duration, expirationTime, shou
 end
 
 -- V: Copy-pasted then modified
-local function ShowMeBuff_RefreshBuffs(frame, unit, rules)
-	local numBuffs = rules.displayNum or MAX_PARTY_BUFFS;
-	local framePrefix = frame:GetName().."Buff";
+local function RefreshBuffsList(frame, suffix, unit, rules, checker)
+	local numBuffs = rules.numLines * rules.numPerLine
+	-- TODO detect suffix from isFriendly(unit)?
+	local framePrefix = frame:GetName()..suffix
 
 	local name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId;
 	local buffI = 1
-	local filter = rules.onlyCastable and "RAID";
-	for i=1, 40 do
-		name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId = UnitBuff(unit, i, filter);
+	local filter = rules.onlyCastable and "RAID" -- TODO use isFriendly() for "RAID" or not?
+	for i=1, numBuffs do
+		name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId = UnitBuff(unit, i, filter)
 
 		-- we ran out of buffs OR we have enough displayed
 		if not name or buffI > numBuffs then
 			break -- could even return
 		end
 
-		if ShowThisBuff(rules, name, spellId, duration, expirationTime, shouldConsolidate) then
-			local buffName = framePrefix..buffI;
+		if checker(rules, name, spellId, duration, expirationTime, unitCaster, shouldConsolidate) then
+			local buffName = framePrefix..buffI
 			if ( icon ) then
 				-- if we have an icon to show then proceed with setting up the aura
 
 				-- set the icon
-				local buffIcon = _G[buffName.."Icon"];
-				buffIcon:SetTexture(icon);
+				local buffIcon = _G[buffName.."Icon"]
+				buffIcon:SetTexture(icon)
 
 				-- setup the cooldown
-				local coolDown = _G[buffName.."Cooldown"];
-				if ( coolDown ) then
-					CooldownFrame_SetTimer(coolDown, expirationTime - duration, duration, 1);
+				local cooldown = _G[buffName.."Cooldown"]
+				if cooldown then
+					CooldownFrame_SetTimer(cooldown, expirationTime - duration, duration, 1)
 				end
 
 				-- show the aura
-				_G[buffName]:Show();
+				_G[buffName]:Show()
 			else
 				-- no icon, hide the aura
-				_G[buffName]:Hide();
+				_G[buffName]:Hide()
 			end
 			buffI = buffI + 1
 		end
@@ -211,8 +198,8 @@ local function ShowMeBuff_RefreshBuffs(frame, unit, rules)
 
 	-- hide all remaining buff frames
 	-- "buffI" here is already 1 past the last displayed buff
-	for i=buffI, numBuffs do
-		local buffName = framePrefix..i;
+	for i=buffI, 40 do
+		local buffName = framePrefix..i
 		_G[buffName]:Hide()
 	end
 end
@@ -225,22 +212,95 @@ for i=1,4 do
 	g:RegisterEvent("UNIT_AURA")
 	g:SetScript("OnEvent",function(self,event,a1)
 		if a1 == f.unit then
-			ShowMeBuff_RefreshBuffs(f, f.unit, buffRules)
+			RefreshBuffsList(f, "Buff", f.unit, buffRules, ShowThisBuff)
 		end
 	end)
-	for j=1,buffRules.displayNum do
+	for j=1, 40 do
 		local l = f:GetName().."Buff"
 		local n = l..j
-		local c = CreateFrame("Frame",n,f,"TargetBuffFrameTemplate")
-		c:SetSize(15,15)
+		-- V: prepare non-reload mode... TODO...
+		local c = _G[n] or CreateFrame("Frame", n, f, "TargetBuffFrameTemplate")
+		c:SetSize(buffRules.buffSize, buffRules.buffSize)
 		if j == 1 then
 			c:SetPoint("TOPLEFT",47,BUFF_POINT)
-		elseif ((j - 1) % buffRules.buffsPerLine) == 0 then
-			c:SetPoint("TOPLEFT",_G[l..(j - buffRules.buffsPerLine)],"BOTTOMLEFT", 0, -1)
+		elseif ((j - 1) % buffRules.numPerLine) == 0 then
+			c:SetPoint("TOPLEFT",_G[l..(j - buffRules.numPerLine)],"BOTTOMLEFT", 0, -1)
 		else
 			c:SetPoint("LEFT",_G[l..(j-1)],"RIGHT",1,0)
 		end
+		c:Hide()
 		c:EnableMouse(false)
 	end
-	ShowMeBuff_RefreshBuffs(f, f.unit, buffRules)
+	RefreshBuffsList(f, "Buff", f.unit, buffRules, ShowThisBuff)
+end
+
+-- DEBUFFS
+local function ShowThisDebuff(rules, name, spellId, duration, expirationTime, unitCaster, shouldConsolidate)
+end
+
+local debuffRules = ShowMeBuffDB.debuffs
+for i=1, 4 do
+	local f = _G["PartyMemberFrame"..i]
+	f:UnregisterEvent("UNIT_AURA")
+	local g = CreateFrame("Frame")
+	g:RegisterEvent("UNIT_AURA")
+	g:SetScript("OnEvent",function(self,event,a1)
+		if a1 == f.unit then
+			RefreshBuffsList(f, "Debuff", f.unit, debuffRules, ShowThisDebuff)
+		elseif a1 == f.unit.."pet" then
+			-- V: todo integrate lawz's code
+			--PartyMemberFrame_RefreshPetDebuffs(f)
+		end
+	end)
+	for j=1, 40 do
+		local l = f:GetName().."Debuff"
+		local n = l..j
+		local c
+		if _G[n] then -- first 5 (should) already exist
+			c = _G[n]
+		else
+			c = CreateFrame("Frame",n,f,"PartyDebuffFrameTemplate")
+			c:ClearAllPoints()
+			c:SetPoint("BOTTOMLEFT", _G[l..(j-1)],"BOTTOMRIGHT", 3, 0)
+			c:EnableMouse(false)
+		end
+		c:SetSize(debuffRules.buffSize, debuffRules.buffSize)
+		c:Hide()
+		-- V: we need to specifically create a cooldown frame inside of "c"
+		--    because PartyDebuffFrameTemplate has none
+		local cd = CreateFrame("Cooldown",n.."Cooldown",c,"CooldownFrameTemplate")
+		cd:SetReverse(true)
+		--cd:SetDrawEdge(true)
+		cd:SetSize(20, 20) -- V: size needs to be AT LEAST 20
+						   --    ...does that mean debuffRules.buffSize should be >=20?
+		cd:SetPoint("CENTER", 0, -1)
+	end
+	local b = _G[f:GetName().."Debuff1"]
+	b:ClearAllPoints()
+	b:SetPoint("TOPLEFT",48,DEBUFF_POINT)
+	RefreshBuffsList(f, "Debuff", f.unit, debuffRules, ShowThisDebuff)
+end
+
+local smb = CreateFrame("Frame")
+smb.db = ShowMeBuffDB
+o.smb = smb
+
+function smb:Reset()
+	ShowMeBuffDB = smbDefaults
+end
+
+smb:RegisterEvent("ADDON_LOADED")
+function smb:ADDON_LOADED(event, addonName)
+	if addonName ~= "ShowMeBuff" then return end
+
+	if ShowMeBuffDB.version ~= smbDefaults.version then
+		smb:MigrateDB()
+	end
+	self:CreateOptions()
+end
+
+function smb:MigrateDB()
+	--if ShowMeBuffDB.version == 0 then
+	--	ShowMeBuffDB.version = 1
+	--end
 end
