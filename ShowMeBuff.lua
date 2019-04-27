@@ -54,7 +54,6 @@ smbDefaults = {
 			"47260", --"Backdraft", -- same ?
 			-- "Backlash",
 			-- "Nether Protection",
-			"29341", --"Shadowburn",
 			"47197", --"Eradication",
 			-- "Shadow Trance",
 			-- Druid
@@ -66,9 +65,6 @@ smbDefaults = {
 			"61847", --"Aspect of the Dragonhawk",
 			"19506", --"Trueshot Aura",
 			"52858", --"Culling the Herd",
-			-- War
-			"46857", --"Trauma",
-			"30070", --"Blood Frenzy",
 		},
 		hideInfinite = false,
 		hideMounts = true,
@@ -84,8 +80,14 @@ smbDefaults = {
 	},
 	debuffs = {
 		hideNames = {
-			"26013", -- "Deserter",
-			-- "whatever"
+			"26013", -- Deserter
+			-- War
+			"46857", -- Trauma
+			"30070", -- Blood Frenzy
+			-- Rogue
+			"48660", -- Hemorrhage
+			-- Warlock
+			"29341", --"Shadowburn",
 		},
 		hideFiltered = true,
 
