@@ -120,7 +120,7 @@ local function ShowThisBuff(rules, name, spellId, duration, expirationTime, unit
 	--print(name, debuffType, duration, expirationTime, "--")
 	if rules.hideConsolidated and shouldConsolidate then
 		-- consolidated buff
-		-- print(name..": consolidated")
+		--print(name..": consolidated")
 		return
 	end
 	if rules.hideInfinite and expirationTime == 0 then
@@ -139,12 +139,12 @@ local function ShowThisBuff(rules, name, spellId, duration, expirationTime, unit
 	end
 	if rules.hideDuration and duration >= rules.hideDuration then
 		-- buff too long
-		--print(name, duration..": too long")
+		--print(name..": "..duration.." too long")
 		return
 	end
 	if rules.hideMounts and array_contains(mountIds, spellId) then
 		-- mount buff
-		--print(name, duration..": mount")
+		--print(name..": mount")
 		return
 	end
 	--print(name, duration, "ok")
@@ -160,7 +160,7 @@ local function RefreshBuffsList(frame, friendly, unit, rules, checker)
 
 	local name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId;
 	local buffI = 1
-	local filter = rules.onlyCastable and "RAID" -- TODO use isFriendly() for "RAID" or not?
+	local filter = rules.onlyCastable and friendly and "RAID" -- TODO use isFriendly() for "RAID" or not?
 	for i=1, numBuffs do
 		name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId = buffFn(unit, i, filter)
 
@@ -169,7 +169,7 @@ local function RefreshBuffsList(frame, friendly, unit, rules, checker)
 			break -- could even return
 		end
 
-		if checker(rules, name, spellId, duration, expirationTime, unitCaster, shouldConsolidate) then
+		if checker(rules, name, spellId, duration, expirationTime, unitCaster, friendly and shouldConsolidate) then
 			local buffName = framePrefix..buffI
 			if ( icon ) then
 				-- if we have an icon to show then proceed with setting up the aura
@@ -202,19 +202,12 @@ local function RefreshBuffsList(frame, friendly, unit, rules, checker)
 	end
 end
 
-local function LoadPartyBuffs(rules, pointX, pointY)
-	for i=1,4 do
-		local f = _G["PartyMemberFrame"..i] -- PartyMemberFrame1
-		LoadUnitBuffs(rules, pointX, pointY, f)
-	end
-end
-
 function LoadUnitBuffs(rules, pointX, pointY, f)
-	local g = f.smbFrame
+	local g = f.smbBuffFrame
 	if not g then
 		f:UnregisterEvent("UNIT_AURA")
 		g = CreateFrame("Frame")
-		f.smbFrame = g
+		f.smbBuffFrame = g
 		g:RegisterEvent("UNIT_AURA")
 		g:SetScript("OnEvent",function(self,event,a1)
 			if a1 == f.unit then
@@ -223,7 +216,6 @@ function LoadUnitBuffs(rules, pointX, pointY, f)
 		end)
 	end
 
-	print("num: "..rules.numPerLine)
 	for j=1, 40 do
 		local l = f:GetName().."Buff"
 		local n = l..j
@@ -245,11 +237,11 @@ end
 
 -- DEBUFFS
 local function LoadUnitDebuffs(rules, pointX, pointY, f)
-	local g = f.smbFrame
+	local g = f.smbDebuffFrame
 	if not g then
 		f:UnregisterEvent("UNIT_AURA")
 		g = CreateFrame("Frame")
-		f.smbFrame = g
+		f.smbDebuffFrame = g
 		g:RegisterEvent("UNIT_AURA")
 		g:SetScript("OnEvent",function(self,event,a1)
 			if a1 == f.unit then
@@ -263,17 +255,10 @@ local function LoadUnitDebuffs(rules, pointX, pointY, f)
 	for j=1, 40 do
 		local l = f:GetName().."Debuff"
 		local n = l..j
-		local c
-		if _G[n] then -- first 5 (should) already exist
-			c = _G[n]
-		else
-			c = CreateFrame("Frame",n,f,"PartyDebuffFrameTemplate")
-			c:EnableMouse(false)
-		end
+		local c = _G[n] or CreateFrame("Frame",n,f,"PartyDebuffFrameTemplate")
 		c:ClearAllPoints()
 		if j == 1 then
-			-- V: 
-			c:SetPoint("BOTTOMLEFT", _G[l..(j-1)],"BOTTOMRIGHT", 3, 0)
+			--c:SetPoint("BOTTOMLEFT", _G[l..(j-1)],"BOTTOMRIGHT", 3, 0)
 			--c:SetPoint("TOPLEFT",pointX,pointY)
 		elseif ((j - 1) % rules.numPerLine) == 0 then
 			c:SetPoint("TOPLEFT",_G[l..(j - rules.numPerLine)],"BOTTOMLEFT", 0, -1)
@@ -282,6 +267,7 @@ local function LoadUnitDebuffs(rules, pointX, pointY, f)
 		end
 		c:SetSize(rules.buffSize, rules.buffSize)
 		c:Hide()
+
 		-- V: we need to specifically create a cooldown frame inside of "c"
 		--    because PartyDebuffFrameTemplate has none
 		local cd = _G[n.."Cooldown"]
@@ -298,6 +284,13 @@ local function LoadUnitDebuffs(rules, pointX, pointY, f)
 	b:ClearAllPoints()
 	b:SetPoint("TOPLEFT", pointX, pointY)
 	RefreshBuffsList(f, false, f.unit, rules, ShowThisBuff)
+end
+
+local function LoadPartyBuffs(rules, pointX, pointY)
+	for i=1,4 do
+		local f = _G["PartyMemberFrame"..i] -- PartyMemberFrame1
+		LoadUnitBuffs(rules, pointX, pointY, f)
+	end
 end
 
 local function LoadPartyDebuffs(rules, pointX, pointY)
