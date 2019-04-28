@@ -28,43 +28,48 @@ smbDefaults = {
 	buffOverDebuffs = true,
 	buffs = {
 		hideNames = {
-			"46705", --"Honorless Target",
-			"32727", --"Arena Preparation",
-			"33795", --"Strength of the Halaani",
-			"57940", --"Essence of Wintergrasp",
-			-- procs - keep powerful ones
-			"67750", -- "Energized", -- solace
-			"72416", -- Frostforged Sage,  ICC caster ring
-			"50402", -- Frostforged Champion, ICC melee ring
-			"55637", --"Lightweave", -- tailor back
-			"59626", -- Black Magic
-			-- Priest
-			"47515", -- "Divine Aegis",
-			" 63944", -- "Renewed Hope",
-			"15363", -- "Inspiration",
-			"45244", -- "Focused Will",
-			"52800", -- "Borrowed Time",
-			-- Mage
-			"57669", --"Replenishment",
-			-- Lock
-			"47891", --"Shadow Ward",
-			"48018", --"Demonic Circle: Summon",
-			"57567", --"Fel Intelligence",
-			-- "Soul Link", -- keep it ?
-			"47260", --"Backdraft", -- same ?
-			-- "Backlash",
-			-- "Nether Protection",
-			"47197", --"Eradication",
-			-- "Shadow Trance",
-			-- Druid
-			"71184", --"Soothing", -- rdruid idol
-			"16246", --"Clearcasting",
-			"48412", --"Master Shapeshifter",
-			"33883", --"Natural Perfection",
-			-- Hunt
-			"61847", --"Aspect of the Dragonhawk",
-			"19506", --"Trueshot Aura",
-			"52858", --"Culling the Herd",
+			46705, --"Honorless Target",
+			32727, --"Arena Preparation",
+			32728, --"Arena Preparation",
+			33795, --"Strength of the Halaani",
+			57940, --"Essence of Wintergrasp",
+			67759, --"Shard of Flame"
+			44521, --"Preparation"
+			--procs - keep powerful ones
+			67750, -- "Energized", -- solace
+			72416, -- Frostforged Sage,  ICC caster ring
+			50402, -- Frostforged Champion, ICC melee ring
+			55637, --"Lightweave", -- tailor back
+			59626, -- Black Magic
+			--Priest
+			47515, -- "Divine Aegis",
+			63944, -- "Renewed Hope",
+			15363, -- "Inspiration",
+			45244, -- "Focused Will",
+			52800, -- "Borrowed Time",
+			--Mage
+			57669, --"Replenishment",
+			--Lock
+			47891, --"Shadow Ward",
+			48018, --"Demonic Circle: Summon",
+			57567, --"Fel Intelligence",
+			--"Soul Link", -- keep it ?
+			47260, --"Backdraft", -- same ?
+			--"Backlash",
+			--"Nether Protection",
+			47197, --"Eradication",
+			--"Shadow Trance",
+			--Druid
+			71184, --"Soothing", -- rdruid idol
+			16246, --"Clearcasting",
+			48412, --"Master Shapeshifter",
+			33883, --"Natural Perfection",
+			--Hunt
+			61847, --"Aspect of the Dragonhawk",
+			19506, --"Trueshot Aura",
+			52858, --"Culling the Herd",
+			--Pal
+			32223, --"Crusader Aura"
 		},
 		hideInfinite = false,
 		hideMounts = true,
@@ -80,14 +85,14 @@ smbDefaults = {
 	},
 	debuffs = {
 		hideNames = {
-			"26013", -- Deserter
+			26013, -- Deserter
 			-- War
-			"46857", -- Trauma
-			"30070", -- Blood Frenzy
+			46857, -- Trauma
+			30070, -- Blood Frenzy
 			-- Rogue
-			"48660", -- Hemorrhage
+			48660, -- Hemorrhage
 			-- Warlock
-			"29341", --"Shadowburn",
+			29341, --"Shadowburn",
 		},
 		hideFiltered = true,
 
@@ -99,22 +104,6 @@ smbDefaults = {
 	verson = 1,
 }
 
-ShowMeBuffDB = ShowMeBuffDB or smbDefaults
-
-local hideBList, hideDList = ShowMeBuffDB.buffs.hideNames, ShowMeBuffDB.debuffs.hideNames
-for k, v in pairs(hideBList) do
-	local name = GetSpellInfo(v)
-	if name then
-		hideBList[k] = name
-	end
-end
-for k, v in pairs(hideDList) do
-	local name = GetSpellInfo(v)
-	if name then
-		hideDList[k] = name
-	end
-end
-
 local mountIds = {
 	17229, -- Winterspring Frostsaber
 	60114, -- Armored Brown Bear
@@ -125,15 +114,6 @@ local mountIds = {
 	23219, -- Swift Mistsaber
 	71342, -- Big Love Rocket
 }
-
-local BUFF_POINT, DEBUFF_POINT
-if ShowMeBuffDB.buffOverDebuffs then
-	BUFF_POINT = -32
-	DEBUFF_POINT = -64
-else
-	BUFF_POINT = -50
-	DEBUFF_POINT = -32
-end
 
 -- BUFFS
 local function ShowThisBuff(rules, name, spellId, duration, expirationTime, unitCaster, shouldConsolidate)
@@ -222,55 +202,64 @@ local function RefreshBuffsList(frame, friendly, unit, rules, checker)
 	end
 end
 
-local buffRules = ShowMeBuffDB.buffs
-for i=1,4 do
-	local f = _G["PartyMemberFrame"..i] -- PartyMemberFrame1
-	f:UnregisterEvent("UNIT_AURA")
-	local g = CreateFrame("Frame")
-	g:RegisterEvent("UNIT_AURA")
-	g:SetScript("OnEvent",function(self,event,a1)
-		if a1 == f.unit then
-			RefreshBuffsList(f, true, f.unit, buffRules, ShowThisBuff)
-		end
-	end)
+local function LoadPartyBuffs(rules, pointX, pointY)
+	for i=1,4 do
+		local f = _G["PartyMemberFrame"..i] -- PartyMemberFrame1
+		LoadUnitBuffs(rules, pointX, pointY, f)
+	end
+end
+
+function LoadUnitBuffs(rules, pointX, pointY, f)
+	local g = f.smbFrame
+	if not g then
+		f:UnregisterEvent("UNIT_AURA")
+		g = CreateFrame("Frame")
+		f.smbFrame = g
+		g:RegisterEvent("UNIT_AURA")
+		g:SetScript("OnEvent",function(self,event,a1)
+			if a1 == f.unit then
+				RefreshBuffsList(f, true, f.unit, rules, ShowThisBuff)
+			end
+		end)
+	end
+
+	print("num: "..rules.numPerLine)
 	for j=1, 40 do
 		local l = f:GetName().."Buff"
 		local n = l..j
-		-- V: prepare non-reload mode... TODO...
 		local c = _G[n] or CreateFrame("Frame", n, f, "TargetBuffFrameTemplate")
-		c:SetSize(buffRules.buffSize, buffRules.buffSize)
+		c:SetSize(rules.buffSize, rules.buffSize)
+		c:ClearAllPoints()
 		if j == 1 then
-			c:SetPoint("TOPLEFT",47,BUFF_POINT)
-		elseif ((j - 1) % buffRules.numPerLine) == 0 then
-			c:SetPoint("TOPLEFT",_G[l..(j - buffRules.numPerLine)],"BOTTOMLEFT", 0, -1)
+			c:SetPoint("TOPLEFT",pointX,pointY)
+		elseif ((j - 1) % rules.numPerLine) == 0 then
+			c:SetPoint("TOPLEFT",_G[l..(j - rules.numPerLine)],"BOTTOMLEFT", 0, -1)
 		else
 			c:SetPoint("LEFT",_G[l..(j-1)],"RIGHT",1,0)
 		end
 		c:Hide()
 		c:EnableMouse(false)
 	end
-	RefreshBuffsList(f, true, f.unit, buffRules, ShowThisBuff)
+	RefreshBuffsList(f, true, f.unit, rules, ShowThisBuff)
 end
 
 -- DEBUFFS
-local function ShowThisDebuff(rules, name, spellId, duration, expirationTime, unitCaster, shouldConsolidate)
-	return true
-end
-
-local debuffRules = ShowMeBuffDB.debuffs
-for i=1, 4 do
-	local f = _G["PartyMemberFrame"..i]
-	f:UnregisterEvent("UNIT_AURA")
-	local g = CreateFrame("Frame")
-	g:RegisterEvent("UNIT_AURA")
-	g:SetScript("OnEvent",function(self,event,a1)
-		if a1 == f.unit then
-			RefreshBuffsList(f, false, f.unit, debuffRules, ShowThisDebuff)
-		elseif a1 == f.unit.."pet" then
-			-- V: todo integrate lawz's code
-			--PartyMemberFrame_RefreshPetDebuffs(f)
-		end
-	end)
+local function LoadUnitDebuffs(rules, pointX, pointY, f)
+	local g = f.smbFrame
+	if not g then
+		f:UnregisterEvent("UNIT_AURA")
+		g = CreateFrame("Frame")
+		f.smbFrame = g
+		g:RegisterEvent("UNIT_AURA")
+		g:SetScript("OnEvent",function(self,event,a1)
+			if a1 == f.unit then
+				RefreshBuffsList(f, false, f.unit, rules, ShowThisBuff)
+			elseif a1 == f.unit.."pet" then
+				-- V: todo integrate lawz's code
+				--PartyMemberFrame_RefreshPetDebuffs(f)
+			end
+		end)
+	end
 	for j=1, 40 do
 		local l = f:GetName().."Debuff"
 		local n = l..j
@@ -279,44 +268,107 @@ for i=1, 4 do
 			c = _G[n]
 		else
 			c = CreateFrame("Frame",n,f,"PartyDebuffFrameTemplate")
-			c:ClearAllPoints()
-			c:SetPoint("BOTTOMLEFT", _G[l..(j-1)],"BOTTOMRIGHT", 3, 0)
 			c:EnableMouse(false)
 		end
-		c:SetSize(debuffRules.buffSize, debuffRules.buffSize)
+		c:ClearAllPoints()
+		if j == 1 then
+			-- V: 
+			c:SetPoint("BOTTOMLEFT", _G[l..(j-1)],"BOTTOMRIGHT", 3, 0)
+			--c:SetPoint("TOPLEFT",pointX,pointY)
+		elseif ((j - 1) % rules.numPerLine) == 0 then
+			c:SetPoint("TOPLEFT",_G[l..(j - rules.numPerLine)],"BOTTOMLEFT", 0, -1)
+		else
+			c:SetPoint("LEFT",_G[l..(j-1)],"RIGHT",1,0)
+		end
+		c:SetSize(rules.buffSize, rules.buffSize)
 		c:Hide()
 		-- V: we need to specifically create a cooldown frame inside of "c"
 		--    because PartyDebuffFrameTemplate has none
-		local cd = CreateFrame("Cooldown",n.."Cooldown",c,"CooldownFrameTemplate")
-		cd:SetReverse(true)
-		--cd:SetDrawEdge(true)
-		cd:SetSize(20, 20) -- V: size needs to be AT LEAST 20
-						   --    ...does that mean debuffRules.buffSize should be >=20?
-		cd:SetPoint("CENTER", 0, -1)
+		local cd = _G[n.."Cooldown"]
+		if not cd then
+			cd = CreateFrame("Cooldown",n.."Cooldown",c,"CooldownFrameTemplate")
+			cd:SetReverse(true)
+			--cd:SetDrawEdge(true)
+			cd:SetSize(20, 20) -- V: size needs to be AT LEAST 20
+							   --    ...does that mean rules.buffSize should be >=20?
+			cd:SetPoint("CENTER", 0, -1)
+		end
 	end
 	local b = _G[f:GetName().."Debuff1"]
 	b:ClearAllPoints()
-	b:SetPoint("TOPLEFT",48,DEBUFF_POINT)
-	RefreshBuffsList(f, false, f.unit, debuffRules, ShowThisDebuff)
+	b:SetPoint("TOPLEFT", pointX, pointY)
+	RefreshBuffsList(f, false, f.unit, rules, ShowThisBuff)
+end
+
+local function LoadPartyDebuffs(rules, pointX, pointY)
+	for i=1, 4 do
+		local f = _G["PartyMemberFrame"..i]
+		LoadUnitDebuffs(rules, pointX, pointY, f)
+	end
 end
 
 local smb = CreateFrame("Frame")
-smb.db = ShowMeBuffDB
+smb:Show()
 o.smb = smb
 
 function smb:Reset()
 	ShowMeBuffDB = smbDefaults
+	print("Resetting options!")
 end
 
-smb:RegisterEvent("ADDON_LOADED")
-function smb:ADDON_LOADED(event, addonName)
-	if addonName ~= "ShowMeBuff" then return end
+local function LoadBuffs()
+	local BUFF_POINT
+	if ShowMeBuffDB.buffOverDebuffs then
+		BUFF_POINT = -32
+	else
+		BUFF_POINT = -50
+	end
 
+	LoadPartyBuffs(ShowMeBuffDB.buffs, 48, BUFF_POINT)
+	LoadUnitBuffs(ShowMeBuffDB.buffs, -100, 0, PlayerFrame)
+end
+
+local function LoadDebuffs()
+	local DEBUFF_POINT
+	if ShowMeBuffDB.buffOverDebuffs then
+		DEBUFF_POINT = -64
+	else
+		DEBUFF_POINT = -32
+	end
+	
+	LoadPartyDebuffs(ShowMeBuffDB.debuffs, 48, DEBUFF_POINT)
+	LoadUnitDebuffs(ShowMeBuffDB.debuffs, -100, -50, PlayerFrame)
+end
+
+local function SmbLoaded(self)
+	self:SetScript("OnEvent", function(self,event,...) if self[event] then self[event](self,...) end end)
+
+	ShowMeBuffDB = ShowMeBuffDB or smbDefaults
 	if ShowMeBuffDB.version ~= smbDefaults.version then
 		smb:MigrateDB()
 	end
 	self:CreateOptions()
+
+	convertspellids(ShowMeBuffDB.buffs.hideNames)
+	convertspellids(ShowMeBuffDB.debuffs.hideNames)
+
+	LoadBuffs()
+	smb.LoadBuffs = LoadBuffs
+	LoadDebuffs()
+	smb.LoadDebuffs = LoadDebuffs
 end
+
+function convertspellids(list)
+	for k, v in pairs(list) do
+		local name = GetSpellInfo(v)
+		if name then
+			list[k] = name
+		end
+	end
+end
+
+smb:RegisterEvent("VARIABLES_LOADED")
+smb:SetScript("OnEvent", SmbLoaded)
 
 function smb:MigrateDB()
 	--if ShowMeBuffDB.version == 0 then

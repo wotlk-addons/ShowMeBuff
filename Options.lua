@@ -1,7 +1,6 @@
 local _, o = ...
 
 local smb = o.smb
-local buffRules = ShowMeBuffDB.buffs
 
 local SimpleOptions = LibStub("LibSimpleOptions-1.0")
 function smb:CreateOptions()
@@ -35,40 +34,55 @@ function smb:CreateOptions()
 		'name', 'Filter out buffs',
 		'description', 'Enable the filter list',
 		'default', true,
-		'current', buffRules.hideFiltered,
-		'setFunc', function(value) buffRules.hideFiltered = value end)
+		'current', ShowMeBuffDB.buffs.hideFiltered,
+		'setFunc', function(value)
+			ShowMeBuffDB.buffs.hideFiltered = value
+			smb.LoadBuffs()
+		end)
 	filter:SetPoint("TOPLEFT",buffPanel,"BOTTOMLEFT",0,-10)
 	
 	local consolidated = panel:MakeToggle(
 		'name', 'Hide consolidated',
 		'description', 'Hide consolidated buffs',
 		'default', true,
-		'current', buffRules.hideConsolidated,
-		'setFunc', function(value) buffRules.hideConsolidated = value end)
+		'current', ShowMeBuffDB.buffs.hideConsolidated,
+		'setFunc', function(value)
+			ShowMeBuffDB.buffs.hideConsolidated = value
+			smb.LoadBuffs()
+		end)
 	consolidated:SetPoint("TOPLEFT",filter,"BOTTOMLEFT",0,-5)
 	
 	local mounts = panel:MakeToggle(
 		'name', 'Hide mounts',
 		'description', 'Hide mounts',
 		'default', true,
-		'current', buffRules.hideMounts,
-		'setFunc', function(value) buffRules.hideMounts = value end)
+		'current', ShowMeBuffDB.buffs.hideMounts,
+		'setFunc', function(value)
+			ShowMeBuffDB.buffs.hideMounts = value
+			smb.LoadBuffs()
+		end)
 	mounts:SetPoint("TOPLEFT",consolidated,"BOTTOMLEFT",0,-5)
 	
 	local infinite = panel:MakeToggle(
 		'name', 'Hide infinite',
 		'description', 'Hide buffs with infinite duration',
 		'default', false,
-		'current', buffRules.hideInfinite,
-		'setFunc', function(value) buffRules.hideInfinite = value end)
+		'current', ShowMeBuffDB.buffs.hideInfinite,
+		'setFunc', function(value)
+			ShowMeBuffDB.buffs.hideInfinite = value
+			smb.LoadBuffs()
+		end)
 	infinite:SetPoint("TOPLEFT",mounts,"BOTTOMLEFT",0,-5)
 	
 	local player = panel:MakeToggle(
 		'name', 'Hide non player',
 		'description', 'Only shows buffs the player applied',
 		'default', false,
-		'current', buffRules.hideNonPlayer,
-		'setFunc', function(value) buffRules.hideNonPlayer = value end)
+		'current', ShowMeBuffDB.buffs.hideNonPlayer,
+		'setFunc', function(value)
+			ShowMeBuffDB.buffs.hideNonPlayer = value
+			smb.LoadBuffs()
+		end)
 	player:SetPoint("TOPLEFT",infinite,"BOTTOMLEFT",0,-5)
 
 	local duration = panel:MakeSlider(
@@ -80,8 +94,11 @@ function smb:CreateOptions()
 		'maxValue', 60,
 		'step', 5,
 		'default', 10,
-		'current', buffRules.hideDuration/60,
-		'setFunc', function(value) buffRules.hideDuration = value*60 end,
+		'current', ShowMeBuffDB.buffs.hideDuration/60,
+		'setFunc', function(value)
+			ShowMeBuffDB.buffs.hideDuration = value*60
+			smb.LoadBuffs()
+		end,
 		'currentTextFunc', function(value) return ("%.0f"):format(value) end)
 	duration:SetPoint("TOP",reset,"BOTTOM",-10,-40)
 	
@@ -93,23 +110,29 @@ function smb:CreateOptions()
 		'minValue', 15,
 		'maxValue', 50,
 		'step', 5,
-		'default', buffRules.buffSize,
-		'current', buffRules.buffSize,
-		'setFunc', function(value) buffRules.buffSize = value end,
+		'default', ShowMeBuffDB.buffs.buffSize,
+		'current', ShowMeBuffDB.buffs.buffSize,
+		'setFunc', function(value)
+			ShowMeBuffDB.buffs.buffSize = value
+			smb.LoadBuffs()
+		end,
 		'currentTextFunc', function(value) return ("%.0f"):format(value) end)
 	size:SetPoint("TOPLEFT",duration,"BOTTOMLEFT",0,-30)
 	
 	local numPerLine = panel:MakeSlider(
 		'name', 'Buff per line',
 		'description', 'Chose the number of buffs per line, requires reload',
-		'minText', '2',
+		'minText', '1',
 		'maxText', '10',
-		'minValue', 2,
+		'minValue', 1,
 		'maxValue', 10,
 		'step', 1,
 		'default', 5,
-		'current', buffRules.numPerLine,
-		'setFunc', function(value) buffRules.numPerLine = value end,
+		'current', ShowMeBuffDB.buffs.numPerLine,
+		'setFunc', function(value)
+			ShowMeBuffDB.buffs.numPerLine = value
+			smb.LoadBuffs()
+		end,
 		'currentTextFunc', function(value) return ("%.0f"):format(value) end)
 	numPerLine:SetPoint("TOPLEFT",size,"BOTTOMLEFT",0,-30)
 	
@@ -122,8 +145,11 @@ function smb:CreateOptions()
 		'maxValue', 4,
 		'step', 1,
 		'default', 2,
-		'current', buffRules.numLines,
-		'setFunc', function(value) buffRules.numLines = value end,
+		'current', ShowMeBuffDB.buffs.numLines,
+		'setFunc', function(value)
+			ShowMeBuffDB.buffs.numLines = value
+			smb.LoadBuffs()
+		end,
 		'currentTextFunc', function(value) return ("%.0f"):format(value) end)
 	numLines:SetPoint("TOPLEFT",perLine,"BOTTOMLEFT",0,-30)
 end
@@ -134,7 +160,7 @@ SLASH_SMB2 = "/showmebuff";
 SlashCmdList["SMB"] = function(cmd)
 	cmd = cmd:lower() or ""
 	if cmd == "reset" then
-		smb:reset()
+		smb:Reset()
 	elseif cmd == "debug" then
 		ShowMeBuff.debug = not ShowMeBuff.debug
 	else
