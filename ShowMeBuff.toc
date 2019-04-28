@@ -1,7 +1,7 @@
 ## Title: ShowMeBuff
 ## Author: Lawz & Vendethiel
 ## Interface: 30300
-## SavedVariables: SMBDB
+## SavedVariables: ShowMeBuffDB
 
 libs\LibSimpleOptions-1.0\LibStub\LibStub.lua
 libs\LibSimpleOptions-1.0\lib.xml
