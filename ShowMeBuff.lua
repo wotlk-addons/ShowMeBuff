@@ -172,16 +172,17 @@ local function ShowThisBuff(rules, name, spellId, duration, expirationTime, unit
 end
 
 -- V: Copy-pasted then modified
-local function RefreshBuffsList(frame, suffix, unit, rules, checker)
+local function RefreshBuffsList(frame, friendly, unit, rules, checker)
 	local numBuffs = rules.numLines * rules.numPerLine
 	-- TODO detect suffix from isFriendly(unit)?
-	local framePrefix = frame:GetName()..suffix
+	local framePrefix = frame:GetName()..(friendly and "Buff" or "Debuff")
+	local buffFn = friendly and UnitBuff or UnitDebuff
 
 	local name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId;
 	local buffI = 1
 	local filter = rules.onlyCastable and "RAID" -- TODO use isFriendly() for "RAID" or not?
 	for i=1, numBuffs do
-		name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId = UnitBuff(unit, i, filter)
+		name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId = buffFn(unit, i, filter)
 
 		-- we ran out of buffs OR we have enough displayed
 		if not name or buffI > numBuffs then
@@ -229,7 +230,7 @@ for i=1,4 do
 	g:RegisterEvent("UNIT_AURA")
 	g:SetScript("OnEvent",function(self,event,a1)
 		if a1 == f.unit then
-			RefreshBuffsList(f, "Buff", f.unit, buffRules, ShowThisBuff)
+			RefreshBuffsList(f, true, f.unit, buffRules, ShowThisBuff)
 		end
 	end)
 	for j=1, 40 do
@@ -248,11 +249,12 @@ for i=1,4 do
 		c:Hide()
 		c:EnableMouse(false)
 	end
-	RefreshBuffsList(f, "Buff", f.unit, buffRules, ShowThisBuff)
+	RefreshBuffsList(f, true, f.unit, buffRules, ShowThisBuff)
 end
 
 -- DEBUFFS
 local function ShowThisDebuff(rules, name, spellId, duration, expirationTime, unitCaster, shouldConsolidate)
+	return true
 end
 
 local debuffRules = ShowMeBuffDB.debuffs
@@ -263,7 +265,7 @@ for i=1, 4 do
 	g:RegisterEvent("UNIT_AURA")
 	g:SetScript("OnEvent",function(self,event,a1)
 		if a1 == f.unit then
-			RefreshBuffsList(f, "Debuff", f.unit, debuffRules, ShowThisDebuff)
+			RefreshBuffsList(f, false, f.unit, debuffRules, ShowThisDebuff)
 		elseif a1 == f.unit.."pet" then
 			-- V: todo integrate lawz's code
 			--PartyMemberFrame_RefreshPetDebuffs(f)
@@ -295,7 +297,7 @@ for i=1, 4 do
 	local b = _G[f:GetName().."Debuff1"]
 	b:ClearAllPoints()
 	b:SetPoint("TOPLEFT",48,DEBUFF_POINT)
-	RefreshBuffsList(f, "Debuff", f.unit, debuffRules, ShowThisDebuff)
+	RefreshBuffsList(f, false, f.unit, debuffRules, ShowThisDebuff)
 end
 
 local smb = CreateFrame("Frame")
