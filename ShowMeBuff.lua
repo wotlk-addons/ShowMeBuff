@@ -120,32 +120,26 @@ local function ShowThisBuff(rules, name, spellId, duration, expirationTime, unit
 	--print(name, debuffType, duration, expirationTime, "--")
 	if rules.hideConsolidated and shouldConsolidate then
 		-- consolidated buff
-		--print(name..": consolidated")
-		return
+		print(name..": consolidated")
 	end
 	if rules.hideInfinite and expirationTime == 0 then
 		-- infinite debuff
-		--print(name..": infinite")
-		return
+		print(name..": infinite")
 	end
 	if rules.hideFiltered and array_contains(rules.hideNames, name) then
 		-- buff explicitly ignored
-		--print(name..": ignored")
-		return
+		print(name..": ignored")
 	end
 	if rules.hideNonPlayer and unitCaster ~= "player" then
-		-- buff not casted by a player
-		return
+		print(name.." buff not casted by a player")
 	end
 	if rules.hideDuration and duration >= rules.hideDuration then
 		-- buff too long
-		--print(name..": "..duration.." too long")
-		return
+		print(name..": "..duration.." too long")
 	end
 	if rules.hideMounts and array_contains(mountIds, spellId) then
 		-- mount buff
-		--print(name..": mount")
-		return
+		print(name..": mount")
 	end
 	--print(name, duration, "ok")
 	return true
@@ -158,11 +152,11 @@ local function RefreshBuffsList(frame, friendly, unit, rules, checker)
 	local framePrefix = frame:GetName()..(friendly and "Buff" or "Debuff")
 	local buffFn = friendly and UnitBuff or UnitDebuff
 
-	local name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId;
+	local name, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId;
 	local buffI = 1
 	local filter = rules.onlyCastable and friendly and "RAID" -- TODO use isFriendly() for "RAID" or not?
 	for i=1, numBuffs do
-		name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId = buffFn(unit, i, filter)
+		name, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId = buffFn(unit, i, filter)
 
 		-- we ran out of buffs OR we have enough displayed
 		if not name or buffI > numBuffs then
@@ -181,7 +175,7 @@ local function RefreshBuffsList(frame, friendly, unit, rules, checker)
 				-- setup the cooldown
 				local cooldown = _G[buffName.."Cooldown"]
 				if cooldown then
-					CooldownFrame_SetTimer(cooldown, expirationTime - duration, duration, 1)
+					cooldown:SetCooldown(expirationTime - duration, duration, 1)
 				end
 
 				-- show the aura
@@ -318,7 +312,7 @@ local function LoadBuffs()
 	end
 
 	LoadPartyBuffs(ShowMeBuffDB.buffs, 48, BUFF_POINT)
-	LoadUnitBuffs(ShowMeBuffDB.buffs, -100, 0, PlayerFrame)
+	--LoadUnitBuffs(ShowMeBuffDB.buffs, -100, 0, PlayerFrame)
 end
 
 local function LoadDebuffs()
@@ -330,7 +324,7 @@ local function LoadDebuffs()
 	end
 	
 	LoadPartyDebuffs(ShowMeBuffDB.debuffs, 48, DEBUFF_POINT)
-	LoadUnitDebuffs(ShowMeBuffDB.debuffs, -100, -50, PlayerFrame)
+	--LoadUnitDebuffs(ShowMeBuffDB.debuffs, -100, -50, PlayerFrame)
 end
 
 local function SmbLoaded(self)
@@ -340,7 +334,6 @@ local function SmbLoaded(self)
 	if ShowMeBuffDB.version ~= smbDefaults.version then
 		smb:MigrateDB()
 	end
-	self:CreateOptions()
 
 	convertspellids(ShowMeBuffDB.buffs.hideNames)
 	convertspellids(ShowMeBuffDB.debuffs.hideNames)
