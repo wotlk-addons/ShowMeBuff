@@ -120,26 +120,32 @@ local function ShowThisBuff(rules, name, spellId, duration, expirationTime, unit
 	--print(name, debuffType, duration, expirationTime, "--")
 	if rules.hideConsolidated and shouldConsolidate then
 		-- consolidated buff
-		print(name..": consolidated")
+		--print(name..": consolidated")
+    return
 	end
 	if rules.hideInfinite and expirationTime == 0 then
 		-- infinite debuff
-		print(name..": infinite")
+		--print(name..": infinite")
+    return
 	end
 	if rules.hideFiltered and array_contains(rules.hideNames, name) then
 		-- buff explicitly ignored
-		print(name..": ignored")
+		--print(name..": ignored")
+    return
 	end
 	if rules.hideNonPlayer and unitCaster ~= "player" then
-		print(name.." buff not casted by a player")
+		--print(name.." buff not casted by a player")
+    return
 	end
 	if rules.hideDuration and duration >= rules.hideDuration then
 		-- buff too long
-		print(name..": "..duration.." too long")
+		--print(name..": "..duration.." too long")
+    return
 	end
 	if rules.hideMounts and array_contains(mountIds, spellId) then
 		-- mount buff
-		print(name..": mount")
+		--print(name..": mount")
+    return
 	end
 	--print(name, duration, "ok")
 	return true
