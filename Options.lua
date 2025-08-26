@@ -152,6 +152,21 @@ function smb:CreateOptions()
 		end,
 		'currentTextFunc', function(value) return ("%.0f"):format(value) end)
 	numLines:SetPoint("TOPLEFT",perLine,"BOTTOMLEFT",0,-30)
+	
+	local lowerOffset = panel:MakeToggle(
+    'name', 'Lower buff offset for EasyFrames',
+    'description', 'Move buffs slightly lower (good for EasyFrames party frames)',
+    'default', false,
+    'getFunc', function() 
+        return ShowMeBuffDB and ShowMeBuffDB.buffs and ShowMeBuffDB.buffs.lowerBuffOffset or false 
+    end,
+    'setFunc', function(value)
+        if ShowMeBuffDB and ShowMeBuffDB.buffs then
+            ShowMeBuffDB.buffs.lowerBuffOffset = value
+            smb.LoadBuffs()
+        end
+    end)
+	lowerOffset:SetPoint("TOPLEFT", player, "BOTTOMLEFT", 0, -5)
 end
 
 -- Slash commands

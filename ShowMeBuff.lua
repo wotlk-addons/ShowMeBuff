@@ -82,6 +82,7 @@ smbDefaults = {
 		numLines = 18,
 		numPerLine = 6,
 		buffSize = 15,
+		lowerBuffOffset = false,
 	},
 	debuffs = {
 		hideNames = {
@@ -223,7 +224,8 @@ function LoadUnitBuffs(rules, pointX, pointY, f)
 		c:SetSize(rules.buffSize, rules.buffSize)
 		c:ClearAllPoints()
 		if j == 1 then
-			c:SetPoint("TOPLEFT",pointX,pointY)
+			local offsetY = ShowMeBuffDB.buffs.lowerBuffOffset and -10 or 0
+			c:SetPoint("TOPLEFT", pointX, pointY + offsetY)
 		elseif ((j - 1) % rules.numPerLine) == 0 then
 			c:SetPoint("TOPLEFT",_G[l..(j - rules.numPerLine)],"BOTTOMLEFT", 0, -1)
 		else
