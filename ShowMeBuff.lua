@@ -318,7 +318,7 @@ local function LoadBuffs()
 	end
 
 	LoadPartyBuffs(ShowMeBuffDB.buffs, 48, BUFF_POINT)
-	LoadUnitBuffs(ShowMeBuffDB.buffs, -100, 0, PlayerFrame)
+	-- LoadUnitBuffs(ShowMeBuffDB.buffs, -100, 0, PlayerFrame)
 end
 
 local function LoadDebuffs()
@@ -330,7 +330,7 @@ local function LoadDebuffs()
 	end
 	
 	LoadPartyDebuffs(ShowMeBuffDB.debuffs, 48, DEBUFF_POINT)
-	LoadUnitDebuffs(ShowMeBuffDB.debuffs, -100, -50, PlayerFrame)
+	-- LoadUnitDebuffs(ShowMeBuffDB.debuffs, -100, -50, PlayerFrame)
 end
 
 local function SmbLoaded(self)
