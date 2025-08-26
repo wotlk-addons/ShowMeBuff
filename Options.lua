@@ -167,6 +167,21 @@ function smb:CreateOptions()
         end
     end)
 	lowerOffset:SetPoint("TOPLEFT", player, "BOTTOMLEFT", 0, -5)
+	
+	local buffsOnTop = panel:MakeToggle(
+    'name', 'Player buffs on top',
+    'description', 'Show player buffs above the player frame instead of below',
+    'default', false,
+    'getFunc', function() 
+        return ShowMeBuffDB and ShowMeBuffDB.buffs and ShowMeBuffDB.buffs.buffsOnTop or false 
+    end,
+    'setFunc', function(value)
+        if ShowMeBuffDB and ShowMeBuffDB.buffs then
+            ShowMeBuffDB.buffs.buffsOnTop = value
+            smb.LoadBuffs()
+        end
+    end)
+	buffsOnTop:SetPoint("TOPLEFT", lowerOffset, "BOTTOMLEFT", 0, -5)
 end
 
 -- Slash commands
