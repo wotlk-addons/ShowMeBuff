@@ -82,6 +82,8 @@ smbDefaults = {
 		numLines = 18,
 		numPerLine = 6,
 		buffSize = 15,
+		lowerBuffOffset = false,
+		buffsOnTop = false,
 	},
 	debuffs = {
 		hideNames = {
@@ -101,7 +103,7 @@ smbDefaults = {
 		buffSize = 15,
 	},
 	debug = false,
-	verson = 1,
+	version = 1,
 }
 
 local mountIds = {
@@ -223,7 +225,8 @@ function LoadUnitBuffs(rules, pointX, pointY, f)
 		c:SetSize(rules.buffSize, rules.buffSize)
 		c:ClearAllPoints()
 		if j == 1 then
-			c:SetPoint("TOPLEFT",pointX,pointY)
+			local offsetY = ShowMeBuffDB.buffs.lowerBuffOffset and -10 or 0
+			c:SetPoint("TOPLEFT", pointX, pointY + offsetY)
 		elseif ((j - 1) % rules.numPerLine) == 0 then
 			c:SetPoint("TOPLEFT",_G[l..(j - rules.numPerLine)],"BOTTOMLEFT", 0, -1)
 		else
@@ -318,7 +321,21 @@ local function LoadBuffs()
 	end
 
 	LoadPartyBuffs(ShowMeBuffDB.buffs, 48, BUFF_POINT)
-	-- LoadUnitBuffs(ShowMeBuffDB.buffs, -100, 0, PlayerFrame)
+	-- Player buffs: top or bottom
+	if ShowMeBuffDB.buffs.buffsOnTop then
+		if ShowMeBuffDB.buffs.lowerBuffOffset then
+			LoadUnitBuffs(ShowMeBuffDB.buffs, 110, 20, PlayerFrame)
+		else
+			LoadUnitBuffs(ShowMeBuffDB.buffs, 110, 10, PlayerFrame)
+		end
+	else
+		if ShowMeBuffDB.buffs.lowerBuffOffset then
+			LoadUnitBuffs(ShowMeBuffDB.buffs, 110, -60, PlayerFrame)
+		else
+			LoadUnitBuffs(ShowMeBuffDB.buffs, 110, -70, PlayerFrame)
+		end
+	end
+
 end
 
 local function LoadDebuffs()
@@ -330,7 +347,11 @@ local function LoadDebuffs()
 	end
 	
 	LoadPartyDebuffs(ShowMeBuffDB.debuffs, 48, DEBUFF_POINT)
-	-- LoadUnitDebuffs(ShowMeBuffDB.debuffs, -100, -50, PlayerFrame)
+	if ShowMeBuffDB.buffs.buffsOnTop then
+		LoadUnitDebuffs(ShowMeBuffDB.debuffs, 110, 35, PlayerFrame)
+	else
+		LoadUnitDebuffs(ShowMeBuffDB.debuffs, 110, -95, PlayerFrame)
+	end
 end
 
 local function SmbLoaded(self)

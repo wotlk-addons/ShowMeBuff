@@ -89,14 +89,14 @@ function smb:CreateOptions()
 		'name', 'Hide longer than',
 		'description', 'Time in minutes',
 		'minText', '0',
-		'maxText', '60',
+		'maxText', '180',
 		'minValue', 0,
-		'maxValue', 60,
+		'maxValue', 180,
 		'step', 5,
 		'default', 10,
-		'current', ShowMeBuffDB.buffs.hideDuration/60,
+		'current', ShowMeBuffDB.buffs.hideDuration/180,
 		'setFunc', function(value)
-			ShowMeBuffDB.buffs.hideDuration = value*60
+			ShowMeBuffDB.buffs.hideDuration = value*180
 			smb.LoadBuffs()
 		end,
 		'currentTextFunc', function(value) return ("%.0f"):format(value) end)
@@ -152,6 +152,36 @@ function smb:CreateOptions()
 		end,
 		'currentTextFunc', function(value) return ("%.0f"):format(value) end)
 	numLines:SetPoint("TOPLEFT",perLine,"BOTTOMLEFT",0,-30)
+	
+	local lowerOffset = panel:MakeToggle(
+    'name', 'Lower buff offset for EasyFrames',
+    'description', 'Move buffs slightly lower (good for EasyFrames party frames)',
+    'default', false,
+    'getFunc', function() 
+        return ShowMeBuffDB and ShowMeBuffDB.buffs and ShowMeBuffDB.buffs.lowerBuffOffset or false 
+    end,
+    'setFunc', function(value)
+        if ShowMeBuffDB and ShowMeBuffDB.buffs then
+            ShowMeBuffDB.buffs.lowerBuffOffset = value
+            smb.LoadBuffs()
+        end
+    end)
+	lowerOffset:SetPoint("TOPLEFT", player, "BOTTOMLEFT", 0, -5)
+	
+	local buffsOnTop = panel:MakeToggle(
+    'name', 'Player buffs on top',
+    'description', 'Show player buffs above the player frame instead of below',
+    'default', false,
+    'getFunc', function() 
+        return ShowMeBuffDB and ShowMeBuffDB.buffs and ShowMeBuffDB.buffs.buffsOnTop or false 
+    end,
+    'setFunc', function(value)
+        if ShowMeBuffDB and ShowMeBuffDB.buffs then
+            ShowMeBuffDB.buffs.buffsOnTop = value
+            smb.LoadBuffs()
+        end
+    end)
+	buffsOnTop:SetPoint("TOPLEFT", lowerOffset, "BOTTOMLEFT", 0, -5)
 end
 
 -- Slash commands
