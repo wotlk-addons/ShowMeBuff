@@ -5,7 +5,7 @@ local smb = o.smb
 local SimpleOptions = LibStub("LibSimpleOptions-1.0")
 function smb:CreateOptions()
 	if self.panel then return end
-
+	
 	local panel = SimpleOptions.AddOptionsPanel("ShowMeBuff", function() end)
 	self.panel = panel
 	local title, subText = panel:MakeTitleTextAndSubText("ShowMeBuff","Some changes require a reload")
@@ -94,9 +94,9 @@ function smb:CreateOptions()
 		'maxValue', 180,
 		'step', 5,
 		'default', 10,
-		'current', ShowMeBuffDB.buffs.hideDuration/180,
+		'current', ShowMeBuffDB.buffs.hideDuration/60,
 		'setFunc', function(value)
-			ShowMeBuffDB.buffs.hideDuration = value*180
+			ShowMeBuffDB.buffs.hideDuration = value*60
 			smb.LoadBuffs()
 		end,
 		'currentTextFunc', function(value) return ("%.0f"):format(value) end)
@@ -154,7 +154,7 @@ function smb:CreateOptions()
 	numLines:SetPoint("TOPLEFT",perLine,"BOTTOMLEFT",0,-30)
 	
 	local lowerOffset = panel:MakeToggle(
-    'name', 'Lower buff offset for EasyFrames',
+    'name', 'Lower buff offset for EasyFrames Party Frames',
     'description', 'Move buffs slightly lower (good for EasyFrames party frames)',
     'default', false,
     'getFunc', function() 
@@ -168,20 +168,115 @@ function smb:CreateOptions()
     end)
 	lowerOffset:SetPoint("TOPLEFT", player, "BOTTOMLEFT", 0, -5)
 	
-	local buffsOnTop = panel:MakeToggle(
-    'name', 'Player buffs on top',
-    'description', 'Show player buffs above the player frame instead of below',
+	local growUpwards = panel:MakeToggle(
+    'name', 'Player buffs grow upward',
+    'description', 'Make player buffs fill from bottom to top. Party buffs always grow downward.',
     'default', false,
-    'getFunc', function() 
-        return ShowMeBuffDB and ShowMeBuffDB.buffs and ShowMeBuffDB.buffs.buffsOnTop or false 
+    'getFunc', function()
+        return ShowMeBuffDB and ShowMeBuffDB.buffs and ShowMeBuffDB.buffs.growUpwards or false
     end,
     'setFunc', function(value)
         if ShowMeBuffDB and ShowMeBuffDB.buffs then
-            ShowMeBuffDB.buffs.buffsOnTop = value
+            ShowMeBuffDB.buffs.growUpwards = value
             smb.LoadBuffs()
         end
     end)
-	buffsOnTop:SetPoint("TOPLEFT", lowerOffset, "BOTTOMLEFT", 0, -5)
+	growUpwards:SetPoint("TOPLEFT", lowerOffset, "BOTTOMLEFT", 0, -5)
+	
+	local posTitle = panel:MakeTitleTextAndSubText("Player Frame Buff/Debuff Position", "")
+	posTitle:SetPoint("TOPLEFT", growUpwards, "BOTTOMLEFT", 0, -10)
+	
+	local buffOffset = panel:MakeSlider(
+    'name', 'Player buff vertical',
+    'description', 'Vertical offset for buffs on PlayerFrame (higher = up)',
+    'minText', '-120',
+    'maxText', '100',
+    'minValue', -120,
+    'maxValue', 100,
+    'step', 1,
+    'default', -30,
+    'getFunc', function() 
+        return ShowMeBuffDB and ShowMeBuffDB.buffs and ShowMeBuffDB.buffs.playerBuffOffsetY or -30 
+    end,
+    'setFunc', function(value)
+        if ShowMeBuffDB and ShowMeBuffDB.buffs then
+            ShowMeBuffDB.buffs.playerBuffOffsetY = value
+            smb.LoadBuffs()
+        end
+    end,
+    'currentTextFunc', function(value) return tostring(math.floor(value)) end)
+	
+	buffOffset:SetPoint("TOPLEFT", growUpwards, "BOTTOMLEFT", 0, -50)
+
+	
+	local buffOffsetX = panel:MakeSlider(
+    'name', 'Player buff horizontal',
+    'description', 'Horizontal offset for buffs on PlayerFrame',
+    'minText', '-110',
+    'maxText', '300',
+    'minValue', -110,
+    'maxValue', 300,
+    'step', 1,
+    'default', 110,
+    'getFunc', function() 
+        return ShowMeBuffDB and ShowMeBuffDB.buffs and ShowMeBuffDB.buffs.playerBuffOffsetX or 110 
+    end,
+    'setFunc', function(value)
+        if ShowMeBuffDB and ShowMeBuffDB.buffs then
+            ShowMeBuffDB.buffs.playerBuffOffsetX = value
+            smb.LoadBuffs()
+        end
+    end,
+    'currentTextFunc', function(value) return tostring(math.floor(value)) end)
+	
+	buffOffsetX:SetPoint("TOPLEFT", growUpwards, "BOTTOMLEFT", 200, -50)
+
+	
+	local debuffOffset = panel:MakeSlider(
+    'name', 'Player debuff vertical',
+    'description', 'Vertical offset for debuffs on PlayerFrame (higher = up)',
+    'minText', '-120',
+    'maxText', '100',
+    'minValue', -120,
+    'maxValue', 100,
+    'step', 1,
+    'default', -90,
+    'getFunc', function() 
+        return ShowMeBuffDB and ShowMeBuffDB.debuffs and ShowMeBuffDB.debuffs.playerDebuffOffsetY or -90 
+    end,
+    'setFunc', function(value)
+        if ShowMeBuffDB and ShowMeBuffDB.debuffs then
+            ShowMeBuffDB.debuffs.playerDebuffOffsetY = value
+            smb.LoadDebuffs()
+        end
+    end,
+    'currentTextFunc', function(value) return tostring(math.floor(value)) end)
+	
+	debuffOffset:SetPoint("TOPLEFT", buffOffset, "BOTTOMLEFT", 0, -30)
+
+	
+	local debuffOffsetX = panel:MakeSlider(
+    'name', 'Player debuff horizontal',
+    'description', 'Horizontal offset for debuffs on PlayerFrame',
+    'minText', '-110',
+    'maxText', '300',
+    'minValue', -110,
+    'maxValue', 300,
+    'step', 1,
+    'default', -110,
+    'getFunc', function() 
+        return ShowMeBuffDB and ShowMeBuffDB.debuffs and ShowMeBuffDB.debuffs.playerDebuffOffsetX or -110 
+    end,
+    'setFunc', function(value)
+        if ShowMeBuffDB and ShowMeBuffDB.debuffs then
+            ShowMeBuffDB.debuffs.playerDebuffOffsetX = value
+            smb.LoadDebuffs()
+        end
+    end,
+    'currentTextFunc', function(value) return tostring(math.floor(value)) end)
+	
+	debuffOffsetX:SetPoint("TOPLEFT", buffOffset, "BOTTOMLEFT", 200, -30)
+	
 end
 
 -- Slash commands

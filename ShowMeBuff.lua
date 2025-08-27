@@ -82,8 +82,9 @@ smbDefaults = {
 		numLines = 18,
 		numPerLine = 6,
 		buffSize = 15,
-		lowerBuffOffset = false,
-		buffsOnTop = false,
+		playerBuffOffsetY = -67,
+		playerBuffOffsetX = 110,
+		growUpwards = false,
 	},
 	debuffs = {
 		hideNames = {
@@ -101,6 +102,8 @@ smbDefaults = {
 		numLines = 18,
 		numPerLine = 6,
 		buffSize = 15,
+		playerDebuffOffsetY = -100,
+		playerDebuffOffsetX = -110,
 	},
 	debug = false,
 	version = 1,
@@ -205,37 +208,82 @@ local function RefreshBuffsList(frame, friendly, unit, rules, checker)
 end
 
 function LoadUnitBuffs(rules, pointX, pointY, f)
-	local g = f.smbBuffFrame
-	if not g then
-		f:UnregisterEvent("UNIT_AURA")
-		g = CreateFrame("Frame")
-		f.smbBuffFrame = g
-		g:RegisterEvent("UNIT_AURA")
-		g:SetScript("OnEvent",function(self,event,a1)
-			if a1 == f.unit then
-				RefreshBuffsList(f, true, f.unit, rules, ShowThisBuff)
-			end
-		end)
-	end
+    local g = f.smbBuffFrame
+    if not g then
+        f:UnregisterEvent("UNIT_AURA")
+        g = CreateFrame("Frame")
+        f.smbBuffFrame = g
+        g:RegisterEvent("UNIT_AURA")
+        g:SetScript("OnEvent", function(self, event, a1)
+            if a1 == f.unit then
+                RefreshBuffsList(f, true, f.unit, rules, ShowThisBuff)
+            end
+        end)
+    end
 
-	for j=1, 40 do
-		local l = f:GetName().."Buff"
-		local n = l..j
-		local c = _G[n] or CreateFrame("Frame", n, f, "TargetBuffFrameTemplate")
-		c:SetSize(rules.buffSize, rules.buffSize)
-		c:ClearAllPoints()
-		if j == 1 then
-			local offsetY = ShowMeBuffDB.buffs.lowerBuffOffset and -10 or 0
-			c:SetPoint("TOPLEFT", pointX, pointY + offsetY)
-		elseif ((j - 1) % rules.numPerLine) == 0 then
-			c:SetPoint("TOPLEFT",_G[l..(j - rules.numPerLine)],"BOTTOMLEFT", 0, -1)
-		else
-			c:SetPoint("LEFT",_G[l..(j-1)],"RIGHT",1,0)
-		end
-		c:Hide()
-		c:EnableMouse(false)
-	end
-	RefreshBuffsList(f, true, f.unit, rules, ShowThisBuff)
+    local framePrefix = f:GetName() .. "Buff"
+    local buffSize = rules.buffSize
+    local perLine = rules.numPerLine
+    local totalBuffs = rules.numLines * perLine
+
+    -- We'll create all frames first
+    for j = 1, 40 do
+        local n = framePrefix .. j
+        local c = _G[n] or CreateFrame("Frame", n, f, "TargetBuffFrameTemplate")
+        c:SetSize(buffSize, buffSize)
+        c:ClearAllPoints()
+        c:Hide()
+        c:EnableMouse(false)
+
+        -- Create or reuse cooldown
+        local cd = _G[n .. "Cooldown"]
+        if not cd then
+            cd = CreateFrame("Cooldown", n .. "Cooldown", c, "CooldownFrameTemplate")
+            cd:SetReverse(false)
+            cd:SetAllPoints()
+        end
+    end
+
+    -- Now position them based on growUpwards
+    if rules.growUpwards then
+        -- Grow upward: last buff at bottom, fill backwards
+        local total = math.min(totalBuffs, 40)
+        local startI = total
+
+        for j = 1, total do
+            local n = framePrefix .. j
+            local c = _G[n]
+            if j == 1 then
+                -- Bottom-left of the block
+                c:SetPoint("BOTTOMLEFT", pointX, pointY)
+            elseif (j - 1) % perLine == 0 then
+                -- New line above
+                local ref = _G[framePrefix .. (j - perLine)]
+                c:SetPoint("BOTTOMLEFT", ref, "TOPLEFT", 0, 1)
+            else
+                -- Next in row
+                local ref = _G[framePrefix .. (j - 1)]
+                c:SetPoint("LEFT", ref, "RIGHT", 1, 0)
+            end
+        end
+    else
+        -- Default: grow downward
+        for j = 1, 40 do
+            local n = framePrefix .. j
+            local c = _G[n]
+            if j == 1 then
+                c:SetPoint("TOPLEFT", pointX, pointY)
+            elseif (j - 1) % perLine == 0 then
+                local ref = _G[framePrefix .. (j - perLine)]
+                c:SetPoint("TOPLEFT", ref, "BOTTOMLEFT", 0, -1)
+            else
+                local ref = _G[framePrefix .. (j - 1)]
+                c:SetPoint("LEFT", ref, "RIGHT", 1, 0)
+            end
+        end
+    end
+
+    RefreshBuffsList(f, true, f.unit, rules, ShowThisBuff)
 end
 
 -- DEBUFFS
@@ -313,29 +361,30 @@ function smb:Reset()
 end
 
 local function LoadBuffs()
-	local BUFF_POINT
-	if ShowMeBuffDB.buffOverDebuffs then
-		BUFF_POINT = -32
-	else
-		BUFF_POINT = -50
-	end
+    local BUFF_POINT
+    if ShowMeBuffDB.buffOverDebuffs then
+        if ShowMeBuffDB.buffs.lowerBuffOffset then
+            BUFF_POINT = -40
+        else
+            BUFF_POINT = -32
+        end
+    else
+        BUFF_POINT = -50
+    end
 
-	LoadPartyBuffs(ShowMeBuffDB.buffs, 48, BUFF_POINT)
-	-- Player buffs: top or bottom
-	if ShowMeBuffDB.buffs.buffsOnTop then
-		if ShowMeBuffDB.buffs.lowerBuffOffset then
-			LoadUnitBuffs(ShowMeBuffDB.buffs, 110, 20, PlayerFrame)
-		else
-			LoadUnitBuffs(ShowMeBuffDB.buffs, 110, 10, PlayerFrame)
-		end
-	else
-		if ShowMeBuffDB.buffs.lowerBuffOffset then
-			LoadUnitBuffs(ShowMeBuffDB.buffs, 110, -60, PlayerFrame)
-		else
-			LoadUnitBuffs(ShowMeBuffDB.buffs, 110, -70, PlayerFrame)
-		end
-	end
+    -- Load party buffs: always use normal layout (grow downward)
+    local partyRules = {}
+    for k, v in pairs(ShowMeBuffDB.buffs) do
+        partyRules[k] = v
+    end
+    partyRules.growUpwards = false  -- Force downward for party
 
+    LoadPartyBuffs(partyRules, 48, BUFF_POINT)
+
+    -- Load player buffs: respect growUpwards
+    local playerBuffX = ShowMeBuffDB.buffs.playerBuffOffsetX
+    local playerBuffY = ShowMeBuffDB.buffs.playerBuffOffsetY
+    LoadUnitBuffs(ShowMeBuffDB.buffs, playerBuffX, playerBuffY, PlayerFrame)
 end
 
 local function LoadDebuffs()
@@ -347,11 +396,10 @@ local function LoadDebuffs()
 	end
 	
 	LoadPartyDebuffs(ShowMeBuffDB.debuffs, 48, DEBUFF_POINT)
-	if ShowMeBuffDB.buffs.buffsOnTop then
-		LoadUnitDebuffs(ShowMeBuffDB.debuffs, 110, 35, PlayerFrame)
-	else
-		LoadUnitDebuffs(ShowMeBuffDB.debuffs, 110, -95, PlayerFrame)
-	end
+	
+	local playerDebuffX = ShowMeBuffDB.debuffs.playerDebuffOffsetX
+    local playerDebuffY = ShowMeBuffDB.debuffs.playerDebuffOffsetY
+    LoadUnitDebuffs(ShowMeBuffDB.debuffs, playerDebuffX, playerDebuffY, PlayerFrame)
 end
 
 local function SmbLoaded(self)
