@@ -89,14 +89,14 @@ function smb:CreateOptions()
 		'name', 'Hide longer than',
 		'description', 'Time in minutes',
 		'minText', '0',
-		'maxText', '60',
+		'maxText', '180',
 		'minValue', 0,
-		'maxValue', 60,
+		'maxValue', 180,
 		'step', 5,
 		'default', 10,
-		'current', ShowMeBuffDB.buffs.hideDuration/60,
+		'current', ShowMeBuffDB.buffs.hideDuration/180,
 		'setFunc', function(value)
-			ShowMeBuffDB.buffs.hideDuration = value*60
+			ShowMeBuffDB.buffs.hideDuration = value*180
 			smb.LoadBuffs()
 		end,
 		'currentTextFunc', function(value) return ("%.0f"):format(value) end)
