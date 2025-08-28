@@ -119,6 +119,27 @@ function smb:CreateOptions()
 		'currentTextFunc', function(value) return ("%.0f"):format(value) end)
 	size:SetPoint("TOPLEFT",duration,"BOTTOMLEFT",0,-30)
 	
+	local debuffSize = panel:MakeSlider(
+    'name', 'Debuff size',
+    'description', 'Size of debuff icons in pixels',
+    'minText', '15',
+    'maxText', '50',
+    'minValue', 15,
+    'maxValue', 50,
+    'step', 1,
+    'default', 15,
+    'getFunc', function()
+        return ShowMeBuffDB and ShowMeBuffDB.debuffs and ShowMeBuffDB.debuffs.buffSize or 15
+    end,
+    'setFunc', function(value)
+        if ShowMeBuffDB and ShowMeBuffDB.debuffs then
+            ShowMeBuffDB.debuffs.buffSize = value
+            smb.LoadDebuffs()
+        end
+    end,
+    'currentTextFunc', function(value) return tostring(math.floor(value)) end)
+	debuffSize:SetPoint("TOPLEFT", size, "BOTTOMLEFT", 0, -30)
+	
 	local numPerLine = panel:MakeSlider(
 		'name', 'Buff per line',
 		'description', 'Chose the number of buffs per line, requires reload',
@@ -134,7 +155,7 @@ function smb:CreateOptions()
 			smb.LoadBuffs()
 		end,
 		'currentTextFunc', function(value) return ("%.0f"):format(value) end)
-	numPerLine:SetPoint("TOPLEFT",size,"BOTTOMLEFT",0,-30)
+	numPerLine:SetPoint("TOPLEFT",debuffSize,"BOTTOMLEFT",0,-30)
 	
 	local numLines = panel:MakeSlider(
 		'name', 'Lines of buffs',
