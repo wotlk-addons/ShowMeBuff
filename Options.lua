@@ -117,8 +117,29 @@ function smb:CreateOptions()
 			smb.LoadBuffs()
 		end,
 		'currentTextFunc', function(value) return ("%.0f"):format(value) end)
-	size:SetPoint("TOPLEFT",duration,"BOTTOMLEFT",0,-30)
+	size:SetPoint("TOPLEFT",duration,"BOTTOMLEFT",0,-25)
 	
+	local partyBuffSize = panel:MakeSlider(
+    'name', 'Party Buff Size',
+    'description', 'Size of buffs on party frames (in pixels)',
+    'minText', '15',
+    'maxText', '50',
+    'minValue', 15,
+    'maxValue', 50,
+    'step', 1,
+    'default', 15,
+    'getFunc', function()
+        return ShowMeBuffDB and ShowMeBuffDB.buffs and ShowMeBuffDB.buffs.partyBuffSize or 15
+    end,
+    'setFunc', function(value)
+        if ShowMeBuffDB and ShowMeBuffDB.buffs then
+            ShowMeBuffDB.buffs.partyBuffSize = value
+            smb.LoadBuffs()  -- Reload buffs
+        end
+    end,
+    'currentTextFunc', function(value) return tostring(math.floor(value)) end)
+	partyBuffSize:SetPoint("TOPLEFT", duration, "BOTTOMLEFT", 200, -25)
+
 	local debuffSize = panel:MakeSlider(
     'name', 'Debuff size',
     'description', 'Size of debuff icons in pixels',
@@ -138,7 +159,28 @@ function smb:CreateOptions()
         end
     end,
     'currentTextFunc', function(value) return tostring(math.floor(value)) end)
-	debuffSize:SetPoint("TOPLEFT", size, "BOTTOMLEFT", 0, -30)
+	debuffSize:SetPoint("TOPLEFT", size, "BOTTOMLEFT", 0, -25)
+	
+	local partyDebuffSize = panel:MakeSlider(
+    'name', 'Party Debuff Size',
+    'description', 'Size of debuffs on party frames (in pixels)',
+    'minText', '15',
+    'maxText', '50',
+    'minValue', 15,
+    'maxValue', 50,
+    'step', 1,
+    'default', 15,
+    'getFunc', function()
+        return ShowMeBuffDB and ShowMeBuffDB.debuffs and ShowMeBuffDB.debuffs.partyDebuffSize or 15
+    end,
+    'setFunc', function(value)
+        if ShowMeBuffDB and ShowMeBuffDB.debuffs then
+            ShowMeBuffDB.debuffs.partyDebuffSize = value
+            smb.LoadDebuffs()  -- Reload debuffs
+        end
+    end,
+    'currentTextFunc', function(value) return tostring(math.floor(value)) end)
+	partyDebuffSize:SetPoint("TOPLEFT", size, "BOTTOMLEFT", 200, -25)
 	
 	local numPerLine = panel:MakeSlider(
 		'name', 'Buff per line',
@@ -155,7 +197,7 @@ function smb:CreateOptions()
 			smb.LoadBuffs()
 		end,
 		'currentTextFunc', function(value) return ("%.0f"):format(value) end)
-	numPerLine:SetPoint("TOPLEFT",debuffSize,"BOTTOMLEFT",0,-30)
+	numPerLine:SetPoint("TOPLEFT",debuffSize,"BOTTOMLEFT",0,-25)
 	
 	local numLines = panel:MakeSlider(
 		'name', 'Lines of buffs',

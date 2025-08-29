@@ -82,6 +82,7 @@ smbDefaults = {
 		numLines = 18,
 		numPerLine = 6,
 		buffSize = 15,
+		partyBuffSize = 15,
 		playerBuffOffsetY = -67,
 		playerBuffOffsetX = 110,
 		growUpwards = false,
@@ -102,6 +103,7 @@ smbDefaults = {
 		numLines = 18,
 		numPerLine = 6,
 		buffSize = 15,
+		partyDebuffSize = 15,
 		playerDebuffOffsetY = -100,
 		playerDebuffOffsetX = -110,
 	},
@@ -423,17 +425,40 @@ local function LoadUnitDebuffs(rules, pointX, pointY, f)
 end
 
 local function LoadPartyBuffs(rules, pointX, pointY)
-	for i=1,4 do
-		local f = _G["PartyMemberFrame"..i] -- PartyMemberFrame1
-		LoadUnitBuffs(rules, pointX, pointY, f)
-	end
+    local partyBuffSize = rules.partyBuffSize or rules.buffSize or 15  -- Fallback
+
+    for i = 1, 4 do
+        local f = _G["PartyMemberFrame" .. i]
+        if f then
+            -- Create or modify rules for party
+            local partyRules = {}
+            for k, v in pairs(rules) do
+                partyRules[k] = v
+            end
+            partyRules.buffSize = partyBuffSize  -- Override size
+            partyRules.growUpwards = false       -- Force downward
+
+            LoadUnitBuffs(partyRules, pointX, pointY, f)
+        end
+    end
 end
 
 local function LoadPartyDebuffs(rules, pointX, pointY)
-	for i=1, 4 do
-		local f = _G["PartyMemberFrame"..i]
-		LoadUnitDebuffs(rules, pointX, pointY, f)
-	end
+    local partyDebuffSize = rules.partyDebuffSize or rules.buffSize or 15  -- Fallback
+
+    for i = 1, 4 do
+        local f = _G["PartyMemberFrame" .. i]
+        if f then
+            -- Clone rules and override size
+            local partyRules = {}
+            for k, v in pairs(rules) do
+                partyRules[k] = v
+            end
+            partyRules.buffSize = partyDebuffSize
+
+            LoadUnitDebuffs(partyRules, pointX, pointY, f)
+        end
+    end
 end
 
 local smb = CreateFrame("Frame")
