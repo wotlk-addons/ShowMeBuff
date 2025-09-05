@@ -82,8 +82,10 @@ smbDefaults = {
 		numLines = 18,
 		numPerLine = 6,
 		buffSize = 15,
-		lowerBuffOffset = false,
-		buffsOnTop = false,
+		partyBuffSize = 15,
+		playerBuffOffsetY = -67,
+		playerBuffOffsetX = 110,
+		growUpwards = false,
 	},
 	debuffs = {
 		hideNames = {
@@ -101,6 +103,9 @@ smbDefaults = {
 		numLines = 18,
 		numPerLine = 6,
 		buffSize = 15,
+		partyDebuffSize = 15,
+		playerDebuffOffsetY = -100,
+		playerDebuffOffsetX = -110,
 	},
 	debug = false,
 	version = 1,
@@ -116,6 +121,67 @@ local mountIds = {
 	23219, -- Swift Mistsaber
 	71342, -- Big Love Rocket
 }
+
+-- Returns info about weapon enchants using direct API calls (3.3.5 safe)
+local function GetWeaponEnchantInfoByID()
+    local mhTimeLeft, mhDuration, mhExpiration, ohTimeLeft, ohDuration, ohExpiration = GetWeaponEnchantInfo()
+    local result = {}
+
+    -- Spell icons for common enchants (fallbacks)
+    local enchantIcons = {
+        WINDFURY = "Interface\\Icons\\Spell_Nature_Windfury",
+        FLAMETONGUE = "Interface\\Icons\\Spell_Fire_FlameTounge",
+        FROSTBRAND = "Interface\\Icons\\Spell_Frost_FrostWeapon",
+        EARTHLIVING = "Interface\\Icons\\Spell_Nature_EarthLiving",
+        SHADOW_POWER = "Interface\\Icons\\Spell_Shadow_ShadowPact",
+    }
+
+    -- Main hand
+    if mhDuration and mhDuration > 0 then
+        local texture = GetInventoryItemTexture("player", 16)  -- 16 = main hand
+        if not texture then
+            texture = enchantIcons.WINDFURY  -- Fallback
+        end
+        table.insert(result, {
+            name = "Main Hand Enchant",
+            icon = texture,
+            count = 0,
+            debuffType = 0,
+            duration = mhDuration / 1000,
+            expirationTime = GetTime() + (mhTimeLeft / 1000),
+            unitCaster = "player",
+            spellId = 0,
+            isStealable = false,
+            shouldConsolidate = false,
+            nameplateShowAll = false,
+            timeMod = 0
+        })
+    end
+
+    -- Off hand
+    if ohDuration and ohDuration > 0 then
+        local texture = GetInventoryItemTexture("player", 17)  -- 17 = off hand
+        if not texture then
+            texture = enchantIcons.FLAMETONGUE  -- Fallback
+        end
+        table.insert(result, {
+            name = "Off Hand Enchant",
+            icon = texture,
+            count = 0,
+            debuffType = 0,
+            duration = ohDuration / 1000,
+            expirationTime = GetTime() + (ohTimeLeft / 1000),
+            unitCaster = "player",
+            spellId = 0,
+            isStealable = false,
+            shouldConsolidate = false,
+            nameplateShowAll = false,
+            timeMod = 0
+        })
+    end
+
+    return result
+end
 
 -- BUFFS
 local function ShowThisBuff(rules, name, spellId, duration, expirationTime, unitCaster, shouldConsolidate)
@@ -162,7 +228,32 @@ local function RefreshBuffsList(frame, friendly, unit, rules, checker)
 
 	local name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId;
 	local buffI = 1
-	local filter = rules.onlyCastable and friendly and "RAID" -- TODO use isFriendly() for "RAID" or not?
+
+	-- Add weapon enchants first (they are not returned by UnitBuff)
+	if unit == "player" and friendly then
+		local enchants = GetWeaponEnchantInfoByID()
+		for _, buff in ipairs(enchants) do
+			if checker(rules, buff.name, buff.spellId, buff.duration, buff.expirationTime, buff.unitCaster, buff.shouldConsolidate) then
+				local buffName = framePrefix .. buffI
+				local c = _G[buffName]
+
+				if c and buff.icon then
+					local icon = _G[buffName.."Icon"]
+					icon:SetTexture(buff.icon)
+
+					local cooldown = _G[buffName.."Cooldown"]
+					if cooldown then
+						CooldownFrame_SetTimer(cooldown, buff.expirationTime - buff.duration, buff.duration, 1)
+					end
+					c:Show()
+				end
+				buffI = buffI + 1
+			end
+		end
+	end
+	
+	
+	local filter = rules.onlyCastable and friendly and "PLAYER" -- TODO use isFriendly() for "RAID" or not?
 	for i=1, numBuffs do
 		name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId = buffFn(unit, i, filter)
 
@@ -205,37 +296,78 @@ local function RefreshBuffsList(frame, friendly, unit, rules, checker)
 end
 
 function LoadUnitBuffs(rules, pointX, pointY, f)
-	local g = f.smbBuffFrame
-	if not g then
-		f:UnregisterEvent("UNIT_AURA")
-		g = CreateFrame("Frame")
-		f.smbBuffFrame = g
-		g:RegisterEvent("UNIT_AURA")
-		g:SetScript("OnEvent",function(self,event,a1)
-			if a1 == f.unit then
-				RefreshBuffsList(f, true, f.unit, rules, ShowThisBuff)
-			end
-		end)
+    local g = f.smbBuffFrame
+    if not g then
+        f:UnregisterEvent("UNIT_AURA")
+        g = CreateFrame("Frame")
+        f.smbBuffFrame = g
+        g:RegisterEvent("UNIT_AURA")
+        g:SetScript("OnEvent", function(self, event, a1)
+            if a1 == f.unit then
+                RefreshBuffsList(f, true, f.unit, rules, ShowThisBuff)
+            end
+        end)
+    end
+
+    local framePrefix = f:GetName() .. "Buff"
+    local buffSize = rules.buffSize
+    local perLine = rules.numPerLine
+    local totalBuffs = rules.numLines * perLine
+
+    -- We'll create all frames first
+    for j = 1, 40 do
+        local n = framePrefix .. j
+        local c = _G[n] or CreateFrame("Frame", n, f, "TargetBuffFrameTemplate")
+        c:SetSize(buffSize, buffSize)
+        c:ClearAllPoints()
+        c:Hide()
+        c:EnableMouse(false)
+
+        -- Create or reuse cooldown
+        local cd = _G[n .. "Cooldown"]
+        if not cd then
+            cd = CreateFrame("Cooldown", n .. "Cooldown", c, "CooldownFrameTemplate")
+            cd:SetReverse(false)
+            cd:SetAllPoints()
+        end
+    end
+
+    -- Determine direction
+	local point, relativePoint, offsetY
+	if rules.growUpwards then
+		point = "BOTTOMLEFT"
+		relativePoint = "TOPLEFT"
+		offsetY = 1
+	else
+		point = "TOPLEFT"
+		relativePoint = "BOTTOMLEFT"
+		offsetY = -1
 	end
 
-	for j=1, 40 do
-		local l = f:GetName().."Buff"
-		local n = l..j
-		local c = _G[n] or CreateFrame("Frame", n, f, "TargetBuffFrameTemplate")
-		c:SetSize(rules.buffSize, rules.buffSize)
-		c:ClearAllPoints()
+	-- Position all frames
+	for j = 1, 40 do
+		local n = framePrefix .. j
+		local c = _G[n]
+		local ref
+
 		if j == 1 then
-			local offsetY = ShowMeBuffDB.buffs.lowerBuffOffset and -10 or 0
-			c:SetPoint("TOPLEFT", pointX, pointY + offsetY)
-		elseif ((j - 1) % rules.numPerLine) == 0 then
-			c:SetPoint("TOPLEFT",_G[l..(j - rules.numPerLine)],"BOTTOMLEFT", 0, -1)
+			-- First buff: anchor to pointX/pointY
+			c:SetPoint(point, pointX, pointY)
 		else
-			c:SetPoint("LEFT",_G[l..(j-1)],"RIGHT",1,0)
+			-- Get reference frame
+			if (j - 1) % perLine == 0 then
+				-- New row
+				ref = _G[framePrefix .. (j - perLine)]
+				c:SetPoint(point, ref, relativePoint, 0, offsetY)
+			else
+				-- Same row
+				ref = _G[framePrefix .. (j - 1)]
+				c:SetPoint("LEFT", ref, "RIGHT", 1, 0)
+			end
 		end
-		c:Hide()
-		c:EnableMouse(false)
 	end
-	RefreshBuffsList(f, true, f.unit, rules, ShowThisBuff)
+
+    RefreshBuffsList(f, true, f.unit, rules, ShowThisBuff)
 end
 
 -- DEBUFFS
@@ -278,8 +410,7 @@ local function LoadUnitDebuffs(rules, pointX, pointY, f)
 			cd = CreateFrame("Cooldown",n.."Cooldown",c,"CooldownFrameTemplate")
 			cd:SetReverse(true)
 			--cd:SetDrawEdge(true)
-			cd:SetSize(20, 20) -- V: size needs to be AT LEAST 20
-							   --    ...does that mean rules.buffSize should be >=20?
+			cd:SetSize(rules.buffSize, rules.buffSize) -- ← Was 20, now dynamic
 			cd:SetPoint("CENTER", 0, -1)
 		end
 	end
@@ -290,17 +421,40 @@ local function LoadUnitDebuffs(rules, pointX, pointY, f)
 end
 
 local function LoadPartyBuffs(rules, pointX, pointY)
-	for i=1,4 do
-		local f = _G["PartyMemberFrame"..i] -- PartyMemberFrame1
-		LoadUnitBuffs(rules, pointX, pointY, f)
-	end
+    local partyBuffSize = rules.partyBuffSize or rules.buffSize or 15  -- Fallback
+
+    for i = 1, 4 do
+        local f = _G["PartyMemberFrame" .. i]
+        if f then
+            -- Create or modify rules for party
+            local partyRules = {}
+            for k, v in pairs(rules) do
+                partyRules[k] = v
+            end
+            partyRules.buffSize = partyBuffSize  -- Override size
+            partyRules.growUpwards = false       -- Force downward
+
+            LoadUnitBuffs(partyRules, pointX, pointY, f)
+        end
+    end
 end
 
 local function LoadPartyDebuffs(rules, pointX, pointY)
-	for i=1, 4 do
-		local f = _G["PartyMemberFrame"..i]
-		LoadUnitDebuffs(rules, pointX, pointY, f)
-	end
+    local partyDebuffSize = rules.partyDebuffSize or rules.buffSize or 15  -- Fallback
+
+    for i = 1, 4 do
+        local f = _G["PartyMemberFrame" .. i]
+        if f then
+            -- Clone rules and override size
+            local partyRules = {}
+            for k, v in pairs(rules) do
+                partyRules[k] = v
+            end
+            partyRules.buffSize = partyDebuffSize
+
+            LoadUnitDebuffs(partyRules, pointX, pointY, f)
+        end
+    end
 end
 
 local smb = CreateFrame("Frame")
@@ -313,29 +467,30 @@ function smb:Reset()
 end
 
 local function LoadBuffs()
-	local BUFF_POINT
-	if ShowMeBuffDB.buffOverDebuffs then
-		BUFF_POINT = -32
-	else
-		BUFF_POINT = -50
-	end
+    local BUFF_POINT
+    if ShowMeBuffDB.buffOverDebuffs then
+        if ShowMeBuffDB.buffs.lowerBuffOffset then
+            BUFF_POINT = -40
+        else
+            BUFF_POINT = -32
+        end
+    else
+        BUFF_POINT = -50
+    end
 
-	LoadPartyBuffs(ShowMeBuffDB.buffs, 48, BUFF_POINT)
-	-- Player buffs: top or bottom
-	if ShowMeBuffDB.buffs.buffsOnTop then
-		if ShowMeBuffDB.buffs.lowerBuffOffset then
-			LoadUnitBuffs(ShowMeBuffDB.buffs, 110, 20, PlayerFrame)
-		else
-			LoadUnitBuffs(ShowMeBuffDB.buffs, 110, 10, PlayerFrame)
-		end
-	else
-		if ShowMeBuffDB.buffs.lowerBuffOffset then
-			LoadUnitBuffs(ShowMeBuffDB.buffs, 110, -60, PlayerFrame)
-		else
-			LoadUnitBuffs(ShowMeBuffDB.buffs, 110, -70, PlayerFrame)
-		end
-	end
+    -- Load party buffs: always use normal layout (grow downward)
+    local partyRules = {}
+    for k, v in pairs(ShowMeBuffDB.buffs) do
+        partyRules[k] = v
+    end
+    partyRules.growUpwards = false  -- Force downward for party
 
+    LoadPartyBuffs(partyRules, 48, BUFF_POINT)
+
+    -- Load player buffs: respect growUpwards
+    local playerBuffX = ShowMeBuffDB.buffs.playerBuffOffsetX
+    local playerBuffY = ShowMeBuffDB.buffs.playerBuffOffsetY
+    LoadUnitBuffs(ShowMeBuffDB.buffs, playerBuffX, playerBuffY, PlayerFrame)
 end
 
 local function LoadDebuffs()
@@ -347,11 +502,10 @@ local function LoadDebuffs()
 	end
 	
 	LoadPartyDebuffs(ShowMeBuffDB.debuffs, 48, DEBUFF_POINT)
-	if ShowMeBuffDB.buffs.buffsOnTop then
-		LoadUnitDebuffs(ShowMeBuffDB.debuffs, 110, 35, PlayerFrame)
-	else
-		LoadUnitDebuffs(ShowMeBuffDB.debuffs, 110, -95, PlayerFrame)
-	end
+	
+	local playerDebuffX = ShowMeBuffDB.debuffs.playerDebuffOffsetX
+    local playerDebuffY = ShowMeBuffDB.debuffs.playerDebuffOffsetY
+    LoadUnitDebuffs(ShowMeBuffDB.debuffs, playerDebuffX, playerDebuffY, PlayerFrame)
 end
 
 local function SmbLoaded(self)
