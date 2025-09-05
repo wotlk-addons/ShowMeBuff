@@ -332,44 +332,40 @@ function LoadUnitBuffs(rules, pointX, pointY, f)
         end
     end
 
-    -- Now position them based on growUpwards
-    if rules.growUpwards then
-        -- Grow upward: last buff at bottom, fill backwards
-        local total = math.min(totalBuffs, 40)
-        local startI = total
+    -- Determine direction
+	local point, relativePoint, offsetY
+	if rules.growUpwards then
+		point = "BOTTOMLEFT"
+		relativePoint = "TOPLEFT"
+		offsetY = 1
+	else
+		point = "TOPLEFT"
+		relativePoint = "BOTTOMLEFT"
+		offsetY = -1
+	end
 
-        for j = 1, total do
-            local n = framePrefix .. j
-            local c = _G[n]
-            if j == 1 then
-                -- Bottom-left of the block
-                c:SetPoint("BOTTOMLEFT", pointX, pointY)
-            elseif (j - 1) % perLine == 0 then
-                -- New line above
-                local ref = _G[framePrefix .. (j - perLine)]
-                c:SetPoint("BOTTOMLEFT", ref, "TOPLEFT", 0, 1)
-            else
-                -- Next in row
-                local ref = _G[framePrefix .. (j - 1)]
-                c:SetPoint("LEFT", ref, "RIGHT", 1, 0)
-            end
-        end
-    else
-        -- Default: grow downward
-        for j = 1, 40 do
-            local n = framePrefix .. j
-            local c = _G[n]
-            if j == 1 then
-                c:SetPoint("TOPLEFT", pointX, pointY)
-            elseif (j - 1) % perLine == 0 then
-                local ref = _G[framePrefix .. (j - perLine)]
-                c:SetPoint("TOPLEFT", ref, "BOTTOMLEFT", 0, -1)
-            else
-                local ref = _G[framePrefix .. (j - 1)]
-                c:SetPoint("LEFT", ref, "RIGHT", 1, 0)
-            end
-        end
-    end
+	-- Position all frames
+	for j = 1, 40 do
+		local n = framePrefix .. j
+		local c = _G[n]
+		local ref
+
+		if j == 1 then
+			-- First buff: anchor to pointX/pointY
+			c:SetPoint(point, pointX, pointY)
+		else
+			-- Get reference frame
+			if (j - 1) % perLine == 0 then
+				-- New row
+				ref = _G[framePrefix .. (j - perLine)]
+				c:SetPoint(point, ref, relativePoint, 0, offsetY)
+			else
+				-- Same row
+				ref = _G[framePrefix .. (j - 1)]
+				c:SetPoint("LEFT", ref, "RIGHT", 1, 0)
+			end
+		end
+	end
 
     RefreshBuffsList(f, true, f.unit, rules, ShowThisBuff)
 end
